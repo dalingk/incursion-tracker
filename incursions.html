@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Incursions</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-initial-width, initial-scale=1">
+<script async="true" src="incursion.js"></script>
+<style>
+body {
+    font-family: monospace;
+    margin-bottom: 75vh;
+    padding:0 1em;
+    background: black;
+    color: white;
+    font-size: 1.25em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+ul, ol {
+    margin-top:0;
+}
+h1 {
+    margin-bottom:0;
+}
+a {
+    color:white;
+    text-decoration:none;
+}
+a:hover {
+    text-decoration: underline;
+}
+input:focus {
+    box-shadow: 0 0 6px 3px #2FEFEF;
+}
+main {
+    flex: 0 0 auto;
+}
+</style>
+</head>
+<body>
+    <form id="routeForm">
+        <p><label for="location">Your location:</label> <input type="text" value="Jita" id="location"></p>
+        <p><label for="avoid">Avoid:</label> <input id="avoid" type="text" value=""></p>
+        <p>
+            <label for="prefer">Prefer:</label>
+            <select id="prefer">
+                <option value="secure">Secure</option>
+                <option value="insecure">Insecure</option>
+                <option value="shortest">Shortest</option>
+            </select>
+        </p>
+        <div><button id="planRoute">Fly!</button></div>
+    </form>
+<noscript>Of course this page requires JavaScript enabled to function properly.</noscript>
+</body>
+</html>
