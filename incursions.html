@@ -30,26 +30,62 @@ a {
 a:hover {
     text-decoration: underline;
 }
-input:focus {
-    box-shadow: 0 0 6px 3px #2FEFEF;
+input:focus, select:focus {
+    outline: 3px solid #2FEFEF;
 }
 main {
     flex: 0 0 auto;
 }
+table {
+    border: none;
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+td:first-of-type, th:first-of-type {
+    padding-left: 0;
+    border-left: none;
+}
+td:last-of-type, th:last-of-type {
+    padding-right: 0;
+    border-right: none;
+}
+td:nth-of-type(3) {
+    text-align: right;
+}
+td, th {
+    text-align: left;
+    padding: 0 .75em;
+}
+form fieldset {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+form fieldset label {
+    margin-right: 1em;
+}
+form fieldset input {
+    margin-bottom: 1em;
+}
 </style>
 </head>
 <body>
+    <header>
+        <h1>Incursions</h1>
+    </header>
     <form id="routeForm">
-        <p><label for="location">Your location:</label> <input type="text" value="Jita" id="location"></p>
-        <p><label for="avoid">Avoid:</label> <input id="avoid" type="text" value=""></p>
-        <p>
+        <fieldset>
+            <label for="location">Your location:</label><input type="text" value="Jita" id="location">
+            <label for="avoid">Avoid:</label><input id="avoid" type="text" value="">
             <label for="prefer">Prefer:</label>
             <select id="prefer">
                 <option value="secure">Secure</option>
                 <option value="insecure">Insecure</option>
                 <option value="shortest">Shortest</option>
             </select>
-        </p>
+        </fieldset>
         <div><button id="planRoute">Fly!</button></div>
     </form>
 <noscript>Of course this page requires JavaScript enabled to function properly.</noscript>

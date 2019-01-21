@@ -8,6 +8,26 @@ function fromEntries(iterable) {
     return [...iterable].reduce((obj, [key, value]) => Object.assign(obj, {[key]: value}), {});
 }
 
+function getTransaction(storeName, mode='readonly') {
+    let openRequest = window.indexedDB.open('incursions');
+    openRequest.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        const radiiStore = db.createObjectStore('systemRadii', {keyPath: 'systemID'});
+        radiiStore.createIndex('systemID', 'systemID');
+    }
+    return new Promise((resolve, reject) => {
+        openRequest.onerror = (event) => {
+            reject(event);
+        }
+        openRequest.onsuccess = (event) => {
+            const db = openRequest.result;
+            const transaction = db.transaction(storeName, mode);
+            const store = transaction.objectStore(storeName);
+            resolve(store);
+        }
+    });
+}
+
 function superCarrierIcon() {
     const icon = document.createElement('canvas');
     icon.width = 32;
@@ -33,16 +53,30 @@ function superCarrierIcon() {
 function securityStatus(value) {
     let security = document.createDocumentFragment();
     const span = document.createElement('span');
+    span.title = 'System security status';
     span.appendChild(document.createTextNode(value.toFixed(1)));
     if (value < 0) {
         value = 0;
     }
-    span.style.color = securityColors[Math.floor(value.toFixed(1) * 10)];
+    span.style.color = securityColors[Math.floor((value * 10).toFixed(0))];
 
-    security.appendChild(document.createTextNode('('));
     security.appendChild(span);
-    security.appendChild(document.createTextNode(')'));
     return security;
+}
+
+async function farthestCelestial(systemData) {
+    let asteroid_belts = systemData.planets && systemData.planets.map(({asteroid_belts}) => asteroid_belts).filter(moons => moons).flat();
+    let moons = systemData.planets && systemData.planets.map(({planet_id}) => planet_id);
+    let celestialData = {
+        ...asteroid_belts && {asteroid_belts},
+        ...moons && {moons},
+        ...systemData.planets && {planets: systemData.planets.map(({planet_id}) => planet_id)},
+        ...systemData.stargates && {stargates: systemData.stargates},
+        ...systemData.stations && {stations: systemData.stations}
+    };
+    let apiData = await Promise.all(Object.entries(celestialData).map(([key, items]) => items.map(celestialID => esiFetch(`universe/${key}/${celestialID}`))).flat());
+    let distances = apiData.map(({position: {x, y, z}}) => (Math.sqrt(x * x + y * y + z * z) / 149597870700));
+    return Math.max(...distances);
 }
 
 function queryParams(params) {
@@ -164,7 +198,14 @@ async function renderIncursions(incursionData) {
         )
     ).flat()));
 
-    const allIncursions = document.createDocumentFragment();
+    let systemRadii = JSON.parse(window.localStorage.getItem('systemRadii')) || {};
+    let missingRadii = Object.values(systems).map(({system_id}) => system_id).filter(systemID => !systemRadii.hasOwnProperty(systemID));
+    systemRadii = {...systemRadii, ...fromEntries(await Promise.all(missingRadii.map(
+        async systemID => [systemID, await farthestCelestial(systems[systemID])]
+    ).flat()))};
+    window.localStorage.setItem('systemRadii', JSON.stringify(systemRadii));
+
+    const allIncursions = document.createElement('main');
     incursionData.sort((a, b) => {
         let aStaging = systems[a.staging_solar_system_id].security_status;
         let bStaging = systems[b.staging_solar_system_id].security_status;
@@ -177,7 +218,7 @@ async function renderIncursions(incursionData) {
     });
 
     incursionData.forEach(incursion => {
-        let incursionDisplay = document.createElement('main');
+        let incursionDisplay = document.createElement('section');
         const {constellation_id, infested_solar_systems} = incursion;
         const h1 = document.createElement('h1');
         const constellationLink = document.createElement('a');
@@ -215,8 +256,8 @@ async function renderIncursions(incursionData) {
         stagingDisplay.appendChild(securityStatus(stagingSystem.security_status));
         incursionDisplay.appendChild(stagingDisplay);
 
-        incursionDisplay.appendChild(document.createElement('h2').appendChild(document.createTextNode('Systems:')));
-        const infestedSystems = document.createElement('ul');
+        const systemTable = document.createElement('table');
+        const infestedSystems = document.createElement('tbody');
         let unvisitedSystems = [incursion.staging_solar_system_id];
         const visitedSystems = new Set();
         let jumps = 0;
@@ -227,16 +268,24 @@ async function renderIncursions(incursionData) {
                 if (!visitedSystems.has(systemID)) {
                     visitedSystems.add(systemID);
                     const system = systems[systemID];
-                    const systemDisplay = document.createElement('li');
+                    const systemDisplay = document.createElement('tr');
+                    let row = document.createElement('td');
                     let systemName = document.createElement('a');
                     systemName.href = `https://evemaps.dotlan.net/system/${system.name}`;
                     systemName.appendChild(document.createTextNode(`${system.name}`));
-                    systemDisplay.appendChild(systemName);
-                    systemDisplay.appendChild(document.createTextNode(' '));
-                    systemDisplay.appendChild(securityStatus(system.security_status));
+                    row.appendChild(systemName);
+                    systemDisplay.appendChild(row);
+                    row = document.createElement('td');
+                    row.appendChild(securityStatus(system.security_status));
+                    systemDisplay.appendChild(row);
+                    row = document.createElement('td');
+                    row.appendChild(document.createTextNode(`${systemRadii[systemID].toFixed(1)} AU`));
+                    systemDisplay.appendChild(row);
+                    row = document.createElement('td');
                     if (jumps > 0) {
-                        systemDisplay.appendChild(document.createTextNode(`{${jumps}}`));
+                        row.appendChild(document.createTextNode(`${jumps}`));
                     }
+                    systemDisplay.appendChild(row);
                     infestedSystems.appendChild(systemDisplay);
                     newUnvisited = [...newUnvisited, ...system.stargates.map(gateID => gates[gateID].destination.system_id).filter(systemID => systems.hasOwnProperty(systemID))];
                     farthest = systemID;
@@ -245,7 +294,8 @@ async function renderIncursions(incursionData) {
             unvisitedSystems = newUnvisited;
             jumps++;
         }
-        incursionDisplay.appendChild(infestedSystems);
+        systemTable.appendChild(infestedSystems);
+        incursionDisplay.appendChild(systemTable);
 
         const route = document.createElement('div');
         route.appendChild(document.createElement('h2').appendChild(document.createTextNode('Route:')));
