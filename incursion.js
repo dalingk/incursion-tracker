@@ -8,26 +8,6 @@ function fromEntries(iterable) {
     return [...iterable].reduce((obj, [key, value]) => Object.assign(obj, {[key]: value}), {});
 }
 
-function getTransaction(storeName, mode='readonly') {
-    let openRequest = window.indexedDB.open('incursions');
-    openRequest.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        const radiiStore = db.createObjectStore('systemRadii', {keyPath: 'systemID'});
-        radiiStore.createIndex('systemID', 'systemID');
-    }
-    return new Promise((resolve, reject) => {
-        openRequest.onerror = (event) => {
-            reject(event);
-        }
-        openRequest.onsuccess = (event) => {
-            const db = openRequest.result;
-            const transaction = db.transaction(storeName, mode);
-            const store = transaction.objectStore(storeName);
-            resolve(store);
-        }
-    });
-}
-
 function superCarrierIcon() {
     const icon = document.createElement('canvas');
     icon.width = 32;
