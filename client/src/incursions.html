@@ -72,6 +72,16 @@ form fieldset label {
 form fieldset input {
     margin-bottom: 1em;
 }
+form .error {
+    margin: 1em 0;
+    color:red;
+}
+.clickable {
+    cursor: pointer;
+}
+.clickable:hover {
+    text-decoration: underline;
+}
 </style>
 </head>
 <body>
@@ -89,6 +99,7 @@ form fieldset input {
                 <option value="shortest">Shortest</option>
             </select>
         </fieldset>
+        <div id="routeError" class="error"></div>
         <div><button id="planRoute">Fly!</button></div>
     </form>
 <noscript>Of course this page requires JavaScript enabled to function properly.</noscript>

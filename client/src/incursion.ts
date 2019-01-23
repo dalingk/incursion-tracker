@@ -179,6 +179,24 @@ class ESIData {
         systemStore.put(system);
         return maxDistance;
     }
+    async routeData(
+        originID: number,
+        destinationID: number,
+        flag: 'shortest' | 'secure' | 'insecure' = 'secure',
+        avoid: number[] = []
+    ): Promise<number[]> {
+        let routeJSON = await this.fetchJSON(
+            `route/${originID}/${destinationID}`,
+            [['flag', flag], ...avoid.map(systemID => ['avoid', `${systemID}`])]
+        );
+        return routeJSON;
+    }
+    async search(search: string, categories = 'solar_system') {
+        return await this.fetchJSON(`search`, [
+            ['search', search],
+            ['categories', categories]
+        ]);
+    }
     private async universeData(
         type: string,
         id: number
@@ -206,7 +224,7 @@ class IncursionDisplay {
     constructor(data: ESIData) {
         this.data = data;
     }
-    constellation(constellationID: number, regionID: number) {
+    constellation(constellationID: number) {
         const constellationElement = document.createElement('a');
         const constellationName = document.createTextNode(`${constellationID}`);
         constellationElement.appendChild(constellationName);
@@ -304,7 +322,234 @@ class IncursionDisplay {
     }
 }
 
+class RoutePlanner {
+    esi: ESIData;
+    location: HTMLInputElement;
+    avoid: HTMLInputElement;
+    prefer: HTMLSelectElement;
+    error: HTMLElement;
+    routeItems: {
+        [destinationID: number]: {
+            jumpCounter: Text;
+            routeList: HTMLOListElement;
+            jumpCount: number;
+            visible: boolean;
+        };
+    };
+    avoidIDs: number[];
+    originID: number;
+    renderer: IncursionDisplay;
+    initialLoad: Promise<boolean>;
+    constructor(
+        esi: ESIData,
+        elements: {
+            location: HTMLInputElement;
+            avoid: HTMLInputElement;
+            prefer: HTMLSelectElement;
+            error: HTMLElement;
+        }
+    ) {
+        this.esi = esi;
+        this.location = elements.location;
+        this.avoid = elements.avoid;
+        this.prefer = elements.prefer;
+        this.error = elements.error;
+        this.routeItems = {};
+        this.originID = 0;
+        this.avoidIDs = [];
+        this.renderer = new IncursionDisplay(this.esi);
+        if (this.location.form) {
+            this.location.form.addEventListener('submit', e => {
+                e.preventDefault();
+                this.updateRoutes();
+            });
+        }
+        this.searchIDs();
+        this.initialLoad = new Promise((resolve, reject) => {
+            this.searchIDs().then(() => resolve(true));
+        });
+    }
+    async searchIDs() {
+        let avoidSystemNames = this.avoid.value
+            ? this.avoid.value.split(',')
+            : [];
+        let [{ solar_system: originResult }, ...avoid] = await Promise.all([
+            this.esi.search(this.location.value),
+            ...avoidSystemNames.map(systemName => this.esi.search(systemName))
+        ]);
+        if (!originResult || originResult.length < 1) {
+            this.showError(
+                `Unable to find solar system "${this.location.value}"`
+            );
+            return;
+        }
+        avoid = avoid.map(({ solar_system }) => solar_system);
+        let invalidAvoid = avoid.some((item, idx) => {
+            if (typeof item === 'undefined') {
+                this.showError(
+                    `Unable to find solar system "${avoidSystemNames[idx]}".`
+                );
+                return true;
+            }
+            return false;
+        });
+        if (invalidAvoid) {
+            return;
+        }
+        avoid = avoid.reduce(
+            (avoidValues, nextID) => avoidValues.concat(nextID),
+            []
+        );
+        window.localStorage.setItem('location', this.location.value);
+        window.localStorage.setItem('avoid', this.avoid.value);
+        window.localStorage.setItem('prefer', this.prefer.value);
+        this.originID = originResult[0];
+        this.avoidIDs = avoid;
+    }
+    async register(destinationID: number, targetElement: HTMLElement) {
+        const show = document.createElement('span');
+        const routeList = document.createElement('ol');
+        show.classList.add('clickable');
+        let visible = false;
+        let toggleText = new Text(`Show all`);
+        show.appendChild(toggleText);
+        show.addEventListener('click', e => {
+            let target = this.routeItems[destinationID];
+            let newText;
+            if (target.visible) {
+                target.visible = false;
+                newText = new Text(
+                    `Show ${
+                        target.jumpCount > 0
+                            ? ' ' + target.jumpCount + ' jumps'
+                            : ''
+                    }`
+                );
+                target.routeList.style.display = 'none';
+            } else {
+                target.visible = true;
+                newText = new Text(
+                    `Hide ${
+                        target.jumpCount > 0
+                            ? ' ' + target.jumpCount + ' jumps'
+                            : ''
+                    }`
+                );
+                target.routeList.style.display = 'block';
+            }
+            target.jumpCounter.replaceWith(newText);
+            target.jumpCounter = newText;
+        });
+        targetElement.appendChild(show);
+
+        targetElement.appendChild(routeList);
+
+        this.routeItems[destinationID] = {
+            jumpCount: 0,
+            jumpCounter: toggleText,
+            routeList,
+            visible
+        };
+        await this.updateSingleRoute([
+            destinationID,
+            this.routeItems[destinationID]
+        ]);
+    }
+    async updateSingleRoute(
+        routeEntry: [
+            number,
+            {
+                jumpCount: number;
+                jumpCounter: Text;
+                routeList: HTMLOListElement;
+                visible: boolean;
+            }
+        ]
+    ) {
+        await this.initialLoad;
+        let [systemID, targetElement] = routeEntry;
+        let hops = await this.esi.routeData(
+            this.originID,
+            systemID,
+            'secure',
+            this.avoidIDs
+        );
+        const routeList = document.createElement('ol');
+        const routeCount = new Text(`Show ${hops.length} jumps`);
+        routeList.style.display = 'none';
+        hops.map(systemID => {
+            const item = document.createElement('li');
+            item.appendChild(this.renderer.system(systemID));
+            item.appendChild(new Text(' '));
+            item.appendChild(this.renderer.systemSecurity(systemID));
+            routeList.appendChild(item);
+        });
+        targetElement.jumpCounter.replaceWith(routeCount);
+        targetElement.jumpCounter = routeCount;
+        targetElement.routeList.replaceWith(routeList);
+        targetElement.routeList = routeList;
+        targetElement.jumpCount = hops.length;
+        targetElement.visible = false;
+    }
+    async updateRoutes() {
+        this.clearError();
+        await this.searchIDs();
+        await Promise.all(
+            Object.entries(this.routeItems).map(
+                async ([systemID, targetElement]) => {
+                    let hops = await this.esi.routeData(
+                        this.originID,
+                        parseInt(systemID),
+                        'secure',
+                        this.avoidIDs
+                    );
+                    const routeList = document.createElement('ol');
+                    const routeCount = new Text(`Show ${hops.length} jumps`);
+                    routeList.style.display = 'none';
+                    hops.map(systemID => {
+                        const item = document.createElement('li');
+                        item.appendChild(this.renderer.system(systemID));
+                        item.appendChild(new Text(' '));
+                        item.appendChild(
+                            this.renderer.systemSecurity(systemID)
+                        );
+                        routeList.appendChild(item);
+                    });
+                    targetElement.jumpCounter.replaceWith(routeCount);
+                    targetElement.jumpCounter = routeCount;
+                    targetElement.routeList.replaceWith(routeList);
+                    targetElement.routeList = routeList;
+                    targetElement.jumpCount = hops.length;
+                    targetElement.visible = false;
+                }
+            )
+        );
+    }
+    showError(message: string) {
+        const newError = document.createElement('div');
+        newError.id = 'routeError';
+        newError.classList.add('error');
+        newError.appendChild(new Text(message));
+        this.error.replaceWith(newError);
+        this.error = newError;
+    }
+    clearError() {
+        const newError = document.createElement('div');
+        newError.id = 'routeError';
+        newError.classList.add('error');
+        this.error.replaceWith(newError);
+        this.error = newError;
+    }
+}
+
 function main() {
+    let location = <HTMLInputElement>document.getElementById('location');
+    let avoid = <HTMLInputElement>document.getElementById('avoid');
+    let prefer = <HTMLSelectElement>document.getElementById('prefer');
+    let error = <HTMLElement>document.getElementById('routeError');
+    location.value = window.localStorage.getItem('location') || 'Jita';
+    avoid.value = window.localStorage.getItem('avoid') || '';
+    prefer.value = window.localStorage.getItem('prefer') || 'secure';
     let openDatabase = window.indexedDB.open('incursion');
     openDatabase.onerror = event => {
         document.body.appendChild(
@@ -312,8 +557,15 @@ function main() {
         );
     };
     openDatabase.onsuccess = async event => {
-        let incursions = document.createElement('main');
         let esiAPI = new ESIData(openDatabase.result);
+        let routePlanner = new RoutePlanner(esiAPI, {
+            location,
+            avoid,
+            prefer,
+            error
+        });
+
+        let incursions = document.createElement('main');
         let renderer = new IncursionDisplay(esiAPI);
         let incursionData = await esiAPI.incursionData();
         let sortIncursions: Function[] = [];
@@ -377,6 +629,10 @@ function main() {
             affectedSystems.appendChild(affectedSystemsBody);
             display.appendChild(affectedSystems);
 
+            let route = document.createElement('div');
+            route.appendChild(new Text('Route: '));
+            display.appendChild(route);
+
             Promise.all(sortSystems.map(fn => fn())).then(systemArray => {
                 let gates = systemArray.reduce(
                     (allGates, systemData) => ({
@@ -429,6 +685,7 @@ function main() {
                     newBody.appendChild(element)
                 );
                 affectedSystemsBody.replaceWith(newBody);
+                routePlanner.register(furthest, route);
             });
 
             sortIncursions.push(async () => [
