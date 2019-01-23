@@ -1,5 +1,6 @@
 import * as ESI from './esiDefinitions';
 import { SSL_OP_EPHEMERAL_RSA } from 'constants';
+import { resolve } from 'path';
 
 const securityColors = Object.freeze([
     '#F00000',
@@ -15,6 +16,10 @@ const securityColors = Object.freeze([
     '#2FEFEF'
 ]);
 
+function sleep(ms: number) {
+    return new Promise((resolve, reject) => setTimeout(resolve, ms));
+}
+
 function fromEntries(iterable: any[]) {
     return [...iterable].reduce(
         (obj, [key, value]) => Object.assign(obj, { [key]: value }),
@@ -25,11 +30,13 @@ function fromEntries(iterable: any[]) {
 class ESIData {
     db: IDBDatabase;
     cacheExpireDate: Date;
+    bouncer: Map<string, Promise<any>>;
     constructor(db: IDBDatabase) {
         this.db = db;
         let today = new Date();
         today.setMonth(today.getDate() - 30);
         this.cacheExpireDate = today;
+        this.bouncer = new Map();
     }
     private checkCache(storeName: string, key: number): Promise<any> {
         let objectStore = this.db
@@ -49,15 +56,31 @@ class ESIData {
         fields = fields || [];
         fields.push(['datasource', 'tranquility']);
         let queryString = new URLSearchParams(fields);
+        let queryURL = `https://esi.evetech.net/latest/${route}/?${queryString}`;
+        let bouncedRequest = this.bouncer.get(queryURL);
+        if (bouncedRequest) {
+            return await bouncedRequest;
+        }
         try {
-            let response = await fetch(
-                `https://esi.evetech.net/latest/${route}/?${queryString}`
+            this.bouncer.set(
+                queryURL,
+                new Promise((resolve, reject) => {
+                    let response = fetch(queryURL)
+                        .then(response => response.json())
+                        .then(data => {
+                            resolve(data);
+                            this.bouncer.delete(queryURL);
+                        })
+                        .catch(err => reject(err));
+                })
             );
-            return await response.json();
+            return await this.bouncer.get(queryURL);
         } catch {
             let errorDiv = document.createElement('div');
             errorDiv.classList.add('error');
-            errorDiv.appendChild(new Text('Unable to retrieve data from Eve APIs.'));
+            errorDiv.appendChild(
+                new Text('Unable to retrieve data from Eve APIs.')
+            );
             document.body.appendChild(errorDiv);
         }
     }
