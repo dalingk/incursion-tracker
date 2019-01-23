@@ -438,12 +438,14 @@ class RoutePlanner {
     }
     async register(destinationID: number, targetElement: HTMLElement) {
         const show = document.createElement('span');
+        const link = document.createElement('a');
         const routeList = document.createElement('ol');
-        show.classList.add('clickable');
-        let visible = false;
         let toggleText = new Text(`Show all`);
-        show.appendChild(toggleText);
+        link.href = "#";
+        link.appendChild(toggleText);
+        show.appendChild(link);
         show.addEventListener('click', e => {
+            e.preventDefault();
             let target = this.routeItems[destinationID];
             let newText;
             if (target.visible) {
@@ -478,7 +480,7 @@ class RoutePlanner {
             jumpCount: 0,
             jumpCounter: toggleText,
             routeList,
-            visible
+            visible: false
         };
         await this.updateSingleRoute([
             destinationID,
