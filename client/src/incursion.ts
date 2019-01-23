@@ -49,10 +49,17 @@ class ESIData {
         fields = fields || [];
         fields.push(['datasource', 'tranquility']);
         let queryString = new URLSearchParams(fields);
-        let response = await fetch(
-            `https://esi.evetech.net/latest/${route}/?${queryString}`
-        );
-        return await response.json();
+        try {
+            let response = await fetch(
+                `https://esi.evetech.net/latest/${route}/?${queryString}`
+            );
+            return await response.json();
+        } catch {
+            let errorDiv = document.createElement('div');
+            errorDiv.classList.add('error');
+            errorDiv.appendChild(new Text('Unable to retrieve data from Eve APIs.'));
+            document.body.appendChild(errorDiv);
+        }
     }
     async incursionData(): Promise<Array<ESI.Incursion>> {
         return await this.fetchJSON('incursions');
