@@ -264,7 +264,7 @@ class IncursionDisplay {
                 .regionData(constellation.region_id)
                 .then(
                     ({ name }) =>
-                        (constellationElement.href = `https://evemaps.dotlan.net/map/${name}/${
+                        (constellationElement.href = `https://evemaps.dotlan.net/map/${name.replace(' ', '_')}/${
                             constellation.name
                         }`)
                 );
@@ -332,6 +332,7 @@ class IncursionDisplay {
     }
     superCarrierIcon() {
         const icon = document.createElement('canvas');
+        icon.title = 'Boss spawned';
         icon.width = 32;
         icon.height = 32;
         const ctx = icon.getContext('2d');
