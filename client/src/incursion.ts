@@ -294,8 +294,12 @@ class IncursionDisplay {
     }
     systemSecurity(systemID: number) {
         let security = document.createElement('span');
+        let securityValue = new Text('?');
+        security.appendChild(securityValue);
         this.data.systemData(systemID).then(({ security_status }) => {
-            security.appendChild(new Text(`${security_status.toFixed(1)}`));
+            securityValue.replaceWith(
+                new Text(`${security_status.toFixed(1)}`)
+            );
             if (security_status < 0) {
                 security_status = 0;
             }
@@ -441,7 +445,7 @@ class RoutePlanner {
         const link = document.createElement('a');
         const routeList = document.createElement('ol');
         let toggleText = new Text(`Show all`);
-        link.href = "#";
+        link.href = '#';
         link.appendChild(toggleText);
         show.appendChild(link);
         show.addEventListener('click', e => {
