@@ -38,7 +38,7 @@ class ESIData {
         this.cacheExpireDate = today;
         this.bouncer = new Map();
     }
-    private checkCache(storeName: string, key: number): Promise<any> {
+    private checkCache(storeName: string, key: any): Promise<any> {
         let objectStore = this.db
             .transaction(storeName, 'readonly')
             .objectStore(storeName);
@@ -215,10 +215,32 @@ class ESIData {
         flag: 'shortest' | 'secure' | 'insecure' = 'secure',
         avoid: number[] = []
     ): Promise<number[]> {
+        let routeCache = await this.checkCache('route', [
+            originID,
+            destinationID,
+            flag,
+            avoid
+        ]);
+        let cacheExpire = new Date();
+        cacheExpire.setDate(cacheExpire.getDate() - 7);
+        if (routeCache && routeCache.date > cacheExpire) {
+            return routeCache.hops;
+        }
         let routeJSON = await this.fetchJSON(
             `route/${originID}/${destinationID}`,
             [['flag', flag], ...avoid.map(systemID => ['avoid', `${systemID}`])]
         );
+        let routeStore = this.db
+            .transaction('route', 'readwrite')
+            .objectStore('route');
+        routeStore.put({
+            originID,
+            destinationID,
+            flag,
+            avoidIDs: avoid,
+            hops: routeJSON,
+            date: new Date()
+        });
         return routeJSON;
     }
     async search(search: string, categories = 'solar_system') {
@@ -823,6 +845,10 @@ function main() {
             keyPath: 'station_id'
         });
         stationStore.createIndex('station_id', 'station_id');
+
+        let routeStore = db.createObjectStore('route', {
+            keyPath: ['originID', 'destinationID', 'flag', 'avoidIDs']
+        });
     };
 }
 (function() {
