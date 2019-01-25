@@ -96,3 +96,23 @@ export interface Station extends Positioned {
     system_id: number;
     type_id: number;
 }
+
+export interface Sovereignty {
+    alliance_id?: number;
+    corporation_id?: number;
+    faction_id?: number;
+    system_id: number;
+}
+
+export interface Alliance {
+    name: string;
+    ticker: string;
+    alliance_id: number;
+    expire?: Date;
+}
+
+export interface Faction {
+    name: string;
+    faction_id: number;
+    expire?: Date;
+}
