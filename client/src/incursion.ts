@@ -265,6 +265,70 @@ class ESIData {
         hubJumps.sort((a, b) => a[1] - b[1]);
         return [hubJumps[0][0], hubJumps[0][1]];
     }
+    async systemSovereignty(systemID: number) {
+        let expireDate = new Date();
+        let sovCache = await this.checkCache('sovereignty', systemID);
+        if (sovCache && sovCache.expires > expireDate) {
+            return sovCache;
+        }
+        let sov = <ESI.Sovereignty[]>await this.fetchJSON('sovereignty/map');
+        sovCache = await this.checkCache('sovereignty', systemID);
+        if (sovCache && sovCache.expires > expireDate) {
+            return sovCache;
+        }
+        expireDate.setHours(expireDate.getHours() + 1);
+        let sovStore = this.db
+            .transaction('sovereignty', 'readwrite')
+            .objectStore('sovereignty');
+        sov.forEach(system => sovStore.put({ ...system, expires: expireDate }));
+        return sov[systemID];
+    }
+    async faction(factionID: number): Promise<ESI.Faction> {
+        let expireDate = new Date();
+        let factionCache = await this.checkCache('faction', factionID);
+        if (factionCache && factionCache.expire > expireDate) {
+            return factionCache;
+        }
+        expireDate.setDate(expireDate.getDate() + 1);
+        expireDate.setHours(11, 5);
+        let factionJSON = <ESI.Faction[]>(
+            await this.fetchJSON('universe/factions')
+        );
+        let factionStore = this.db
+            .transaction('faction', 'readwrite')
+            .objectStore('faction');
+        let faction;
+        factionJSON.forEach(item => {
+            if (item.faction_id == factionID) {
+                faction = item;
+            }
+            factionStore.put({
+                faction_id: item.faction_id,
+                name: item.name,
+                expire: expireDate
+            });
+        });
+        return faction || {name: 'Unknown', faction_id: 0};
+    }
+    async alliance(allianceID: number): Promise<ESI.Alliance> {
+        let expireDate = new Date();
+        let allianceCache = await this.checkCache('alliance', allianceID);
+        if (allianceCache && allianceCache.expire > expireDate) {
+            return allianceCache;
+        }
+        let alliance = await this.fetchJSON(`alliances/${allianceID}`);
+        expireDate.setHours(expireDate.getHours() + 1);
+        let allianceStore = this.db
+            .transaction('alliance', 'readwrite')
+            .objectStore('alliance');
+        allianceStore.put({
+            alliance_id: allianceID,
+            ticker: alliance.ticker,
+            name: alliance.name,
+            expire: expireDate
+        });
+        return alliance;
+    }
     private async universeData(
         type: string,
         id: number
@@ -368,6 +432,29 @@ class IncursionDisplay {
             }
         );
         return row;
+    }
+    systemSovereignty(systemID: number) {
+        const sovDisplay = document.createElement('div');
+        sovDisplay.appendChild(new Text('Sovereignty: '));
+        this.data.systemSovereignty(systemID).then(async systemData => {
+            if (systemData.hasOwnProperty('alliance_id')) {
+                const link = document.createElement('a');
+                let { name, ticker } = await this.data.alliance(
+                    systemData.alliance_id
+                );
+                link.href = `https://evemaps.dotlan.net/alliance/${name.replace(
+                    ' ',
+                    '_'
+                )}`;
+                link.title = ticker;
+                link.appendChild(new Text(`${name}`));
+                sovDisplay.appendChild(link);
+            } else if (systemData.hasOwnProperty('faction_id')) {
+                let { name } = await this.data.faction(systemData.faction_id);
+                sovDisplay.appendChild(new Text(`${name}`));
+            }
+        });
+        return sovDisplay;
     }
     superCarrierIcon() {
         const icon = document.createElement('canvas');
@@ -660,9 +747,17 @@ function main() {
             );
             display.appendChild(influence);
 
+            display.appendChild(document.createElement('br'));
+
             let tradeHub = document.createElement('div');
             tradeHub.appendChild(new Text('Trade hub: '));
             display.appendChild(tradeHub);
+
+            let hqSovereignty = document.createElement('div');
+            hqSovereignty.appendChild(new Text('Sovereignty: '));
+            display.appendChild(hqSovereignty);
+
+            display.appendChild(document.createElement('br'));
 
             let staging = document.createElement('div');
             staging.appendChild(document.createTextNode('Staging system: '));
@@ -755,6 +850,7 @@ function main() {
                 );
                 affectedSystemsBody.replaceWith(newBody);
                 tradeHub.replaceWith(routePlanner.tradeHub(furthest));
+                hqSovereignty.replaceWith(renderer.systemSovereignty(furthest));
                 routePlanner.register(furthest, route);
             });
 
@@ -825,6 +921,16 @@ function main() {
 
         let routeStore = db.createObjectStore('route', {
             keyPath: ['originID', 'destinationID', 'flag', 'avoidIDs']
+        });
+
+        let sovereigntyStore = db.createObjectStore('sovereignty', {
+            keyPath: 'system_id'
+        });
+        let allianceStore = db.createObjectStore('alliance', {
+            keyPath: 'alliance_id'
+        });
+        let factionStore = db.createObjectStore('faction', {
+            keyPath: 'faction_id'
         });
     };
 }
