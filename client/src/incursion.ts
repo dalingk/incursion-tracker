@@ -302,9 +302,10 @@ class IncursionDisplay {
                 .regionData(constellation.region_id)
                 .then(
                     ({ name }) =>
-                        (constellationElement.href = `https://evemaps.dotlan.net/map/${name.replace(' ', '_')}/${
-                            constellation.name
-                        }`)
+                        (constellationElement.href = `https://evemaps.dotlan.net/map/${name.replace(
+                            ' ',
+                            '_'
+                        )}/${constellation.name}`)
                 );
         });
         return constellationElement;
@@ -555,8 +556,9 @@ class RoutePlanner {
         hops.map(systemID => {
             const item = document.createElement('li');
             item.appendChild(this.renderer.system(systemID));
-            item.appendChild(new Text(' '));
+            item.appendChild(new Text(' ('));
             item.appendChild(this.renderer.systemSecurity(systemID));
+            item.appendChild(new Text(')'));
             routeList.appendChild(item);
         });
         targetElement.jumpCounter.replaceWith(routeCount);
@@ -570,33 +572,8 @@ class RoutePlanner {
         this.clearError();
         await this.searchIDs();
         await Promise.all(
-            Object.entries(this.routeItems).map(
-                async ([systemID, targetElement]) => {
-                    let hops = await this.esi.routeData(
-                        this.originID,
-                        parseInt(systemID),
-                        'secure',
-                        this.avoidIDs
-                    );
-                    const routeList = document.createElement('ol');
-                    const routeCount = new Text(`Show ${hops.length} jumps`);
-                    routeList.style.display = 'none';
-                    hops.map(systemID => {
-                        const item = document.createElement('li');
-                        item.appendChild(this.renderer.system(systemID));
-                        item.appendChild(new Text(' '));
-                        item.appendChild(
-                            this.renderer.systemSecurity(systemID)
-                        );
-                        routeList.appendChild(item);
-                    });
-                    targetElement.jumpCounter.replaceWith(routeCount);
-                    targetElement.jumpCounter = routeCount;
-                    targetElement.routeList.replaceWith(routeList);
-                    targetElement.routeList = routeList;
-                    targetElement.jumpCount = hops.length;
-                    targetElement.visible = false;
-                }
+            Object.entries(this.routeItems).map(([systemID, targetElement]) =>
+                this.updateSingleRoute([parseInt(systemID), targetElement])
             )
         );
     }
