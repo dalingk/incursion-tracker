@@ -673,7 +673,8 @@ class RoutePlanner {
                 target.appendChild(this.renderer.system(hubID));
                 target.appendChild(new Text(' ('));
                 target.appendChild(this.renderer.systemSecurity(hubID));
-                target.appendChild(new Text(`){${jumps}}`));
+                target.appendChild(new Text(`) ${jumps}j`));
+                target.normalize();
             });
         return target;
     }
