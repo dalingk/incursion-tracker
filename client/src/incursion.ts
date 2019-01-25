@@ -227,6 +227,22 @@ class ESIData {
             ['categories', categories]
         ]);
     }
+    async nearestTradeHub(
+        systemID: number,
+        flag: 'shortest' | 'secure' | 'insecure' = 'secure',
+        avoid: number[] = []
+    ): Promise<[number, number]> {
+        const tradeHubs = [30000142, 30002510, 30002187, 30002659, 30002053];
+        const jumps = await Promise.all(
+            tradeHubs.map(hubID => this.routeData(systemID, hubID, flag, avoid))
+        );
+        let hubJumps = tradeHubs.map((hubID, idx) => [
+            hubID,
+            jumps[idx].length
+        ]);
+        hubJumps.sort((a, b) => a[1] - b[1]);
+        return [hubJumps[0][0], hubJumps[0][1]];
+    }
     private async universeData(
         type: string,
         id: number
@@ -562,6 +578,19 @@ class RoutePlanner {
             )
         );
     }
+    tradeHub(systemID: number) {
+        const target = document.createElement('div');
+        target.appendChild(new Text('Trade hub: '));
+        this.esi
+            .nearestTradeHub(systemID, 'secure', this.avoidIDs)
+            .then(([hubID, jumps]) => {
+                target.appendChild(this.renderer.system(hubID));
+                target.appendChild(new Text(' ('));
+                target.appendChild(this.renderer.systemSecurity(hubID));
+                target.appendChild(new Text(`){${jumps}}`));
+            });
+        return target;
+    }
     showError(message: string) {
         const newError = document.createElement('div');
         newError.id = 'routeError';
@@ -631,6 +660,10 @@ function main() {
                 )
             );
             display.appendChild(influence);
+
+            let tradeHub = document.createElement('div');
+            tradeHub.appendChild(new Text('Trade hub: '));
+            display.appendChild(tradeHub);
 
             let staging = document.createElement('div');
             staging.appendChild(document.createTextNode('Staging system: '));
@@ -722,6 +755,7 @@ function main() {
                     newBody.appendChild(element)
                 );
                 affectedSystemsBody.replaceWith(newBody);
+                tradeHub.replaceWith(routePlanner.tradeHub(furthest));
                 routePlanner.register(furthest, route);
             });
 
