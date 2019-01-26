@@ -31,12 +31,14 @@ class ESIData {
     db: IDBDatabase;
     cacheExpireDate: Date;
     bouncer: Map<string, Promise<any>>;
+    sovUpdate: Promise<boolean>;
     constructor(db: IDBDatabase) {
         this.db = db;
         let today = new Date();
         today.setMonth(today.getDate() - 30);
         this.cacheExpireDate = today;
         this.bouncer = new Map();
+        this.sovUpdate = this.initSov();
     }
     private checkCache(storeName: string, key: any): Promise<any> {
         let objectStore = this.db
@@ -265,25 +267,42 @@ class ESIData {
         hubJumps.sort((a, b) => a[1] - b[1]);
         return [hubJumps[0][0], hubJumps[0][1]];
     }
-    async systemSovereignty(systemID: number): Promise<ESI.Sovereignty> {
+    initSov(): Promise<boolean> {
         let expireDate = new Date();
-        let sovCache = await this.checkCache('sovereignty', systemID);
-        if (sovCache && sovCache.expires > expireDate) {
-            return sovCache;
-        }
-        let sov = <ESI.Sovereignty[]>await this.fetchJSON('sovereignty/map');
-        expireDate.setHours(expireDate.getHours() + 1);
-        let sovStore = this.db
-            .transaction('sovereignty', 'readwrite')
-            .objectStore('sovereignty');
-        let owner = { system_id: systemID };
-        sov.forEach((system: ESI.Sovereignty) => {
-            sovStore.put({ ...system, expires: expireDate });
-            if (system.system_id == systemID) {
-                owner = system;
-            }
+        let sovCache = this.db
+            .transaction('sovereignty')
+            .objectStore('sovereignty')
+            .openCursor();
+        return new Promise((resolve, reject) => {
+            sovCache.onsuccess = async e => {
+                if (
+                    sovCache.result &&
+                    sovCache.result.value &&
+                    sovCache.result.value.expires > expireDate
+                ) {
+                    resolve(true);
+                } else {
+                    expireDate.setHours(expireDate.getHours() + 1);
+                    let sov = this.fetchJSON('sovereignty/map').then(data => {
+                        let sovStore = this.db
+                            .transaction('sovereignty', 'readwrite')
+                            .objectStore('sovereignty');
+                        data.forEach((system: ESI.Sovereignty) =>
+                            sovStore.put({ ...system, expires: expireDate })
+                        );
+                    });
+                }
+                resolve(true);
+            };
+            sovCache.onerror = e => {
+                reject(e);
+            };
         });
-        return owner;
+    }
+    async systemSovereignty(systemID: number): Promise<ESI.Sovereignty> {
+        await this.sovUpdate;
+        let sovCache = await this.checkCache('sovereignty', systemID);
+        return sovCache;
     }
     async faction(factionID: number): Promise<ESI.Faction> {
         let expireDate = new Date();
@@ -439,7 +458,10 @@ class IncursionDisplay {
         const sovDisplay = document.createElement('div');
         sovDisplay.appendChild(new Text('Sovereignty: '));
         this.data.systemSovereignty(systemID).then(async systemData => {
-            if (systemData.hasOwnProperty('alliance_id') && systemData.alliance_id) {
+            if (
+                systemData.hasOwnProperty('alliance_id') &&
+                systemData.alliance_id
+            ) {
                 const link = document.createElement('a');
                 let { name, ticker } = await this.data.alliance(
                     systemData.alliance_id
@@ -451,7 +473,10 @@ class IncursionDisplay {
                 link.title = ticker;
                 link.appendChild(new Text(`${name}`));
                 sovDisplay.appendChild(link);
-            } else if (systemData.hasOwnProperty('faction_id') && systemData.faction_id) {
+            } else if (
+                systemData.hasOwnProperty('faction_id') &&
+                systemData.faction_id
+            ) {
                 let { name } = await this.data.faction(systemData.faction_id);
                 sovDisplay.appendChild(new Text(`${name}`));
             }
@@ -879,6 +904,10 @@ function main() {
     };
     openDatabase.onupgradeneeded = (event: IDBVersionChangeEvent) => {
         let db = openDatabase.result;
+
+        Array.from(db.objectStoreNames).map(storeName =>
+            db.deleteObjectStore(storeName)
+        );
 
         let constellationStore = db.createObjectStore('constellation', {
             keyPath: 'constellation_id'
