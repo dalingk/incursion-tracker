@@ -439,7 +439,7 @@ class IncursionDisplay {
         const sovDisplay = document.createElement('div');
         sovDisplay.appendChild(new Text('Sovereignty: '));
         this.data.systemSovereignty(systemID).then(async systemData => {
-            if (systemData.hasOwnProperty('alliance_id')) {
+            if (systemData.hasOwnProperty('alliance_id') && systemData.alliance_id) {
                 const link = document.createElement('a');
                 let { name, ticker } = await this.data.alliance(
                     systemData.alliance_id
@@ -451,7 +451,7 @@ class IncursionDisplay {
                 link.title = ticker;
                 link.appendChild(new Text(`${name}`));
                 sovDisplay.appendChild(link);
-            } else if (systemData.hasOwnProperty('faction_id')) {
+            } else if (systemData.hasOwnProperty('faction_id') && systemData.faction_id) {
                 let { name } = await this.data.faction(systemData.faction_id);
                 sovDisplay.appendChild(new Text(`${name}`));
             }
