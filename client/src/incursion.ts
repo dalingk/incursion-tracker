@@ -265,23 +265,25 @@ class ESIData {
         hubJumps.sort((a, b) => a[1] - b[1]);
         return [hubJumps[0][0], hubJumps[0][1]];
     }
-    async systemSovereignty(systemID: number) {
+    async systemSovereignty(systemID: number): Promise<ESI.Sovereignty> {
         let expireDate = new Date();
         let sovCache = await this.checkCache('sovereignty', systemID);
         if (sovCache && sovCache.expires > expireDate) {
             return sovCache;
         }
         let sov = <ESI.Sovereignty[]>await this.fetchJSON('sovereignty/map');
-        sovCache = await this.checkCache('sovereignty', systemID);
-        if (sovCache && sovCache.expires > expireDate) {
-            return sovCache;
-        }
         expireDate.setHours(expireDate.getHours() + 1);
         let sovStore = this.db
             .transaction('sovereignty', 'readwrite')
             .objectStore('sovereignty');
-        sov.forEach(system => sovStore.put({ ...system, expires: expireDate }));
-        return sov[systemID];
+        let owner = { system_id: systemID };
+        sov.forEach((system: ESI.Sovereignty) => {
+            sovStore.put({ ...system, expires: expireDate });
+            if (system.system_id == systemID) {
+                owner = system;
+            }
+        });
+        return owner;
     }
     async faction(factionID: number): Promise<ESI.Faction> {
         let expireDate = new Date();
@@ -297,7 +299,7 @@ class ESIData {
         let factionStore = this.db
             .transaction('faction', 'readwrite')
             .objectStore('faction');
-        let faction;
+        let faction = { name: 'Unknown', faction_id: 0 };
         factionJSON.forEach(item => {
             if (item.faction_id == factionID) {
                 faction = item;
@@ -308,7 +310,7 @@ class ESIData {
                 expire: expireDate
             });
         });
-        return faction || {name: 'Unknown', faction_id: 0};
+        return faction;
     }
     async alliance(allianceID: number): Promise<ESI.Alliance> {
         let expireDate = new Date();
