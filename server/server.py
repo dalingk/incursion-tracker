@@ -1,16 +1,16 @@
-from collections import defaultdict
-from pprint import pprint
+import os
 import uuid
 import aiosqlite
 from sanic import Sanic
 from sanic.response import json
 
+DB_FILE = os.environ['DB_FILE']
 app = Sanic()
 
 async def get_incursion_data():
     """Parse incursions into a cohesive dictionary object."""
     incursions = {}
-    async with aiosqlite.connect('incursion.db') as db:
+    async with aiosqlite.connect(DB_FILE) as db:
         cursor = await db.execute('SELECT current_incursion.uuid, constellation_id, current_incursion.state, has_boss, state_changes.state, state_changes.time FROM current_incursion join state_changes on state_changes.uuid = current_incursion.uuid where current_incursion.current = 1;')
         data = await cursor.fetchall()
         for x in data:

@@ -1,9 +1,10 @@
+import os
 import requests
 import sqlite3
 import uuid
 from pprint import pprint
 
-
+DB_FILE = os.environ['DB_FILE']
 API_URL = 'https://esi.evetech.net/latest/incursions?datasource=tranquility'
 
 data = requests.get(API_URL)
@@ -32,7 +33,7 @@ def defeat_incursion(cursor, constellation_id):
     cursor.execute('UPDATE current_incursion SET current = 0 WHERE uuid = (SELECT uuid FROM current_incursion WHERE constellation_id = ? AND current = 1);', (constellation_id,))
 
 
-with sqlite3.connect('incursion.db') as conn:
+with sqlite3.connect(DB_FILE) as conn:
     cursor = conn.cursor()
     cursor.execute('CREATE TABLE IF NOT EXISTS current_incursion (uuid blob, constellation_id integer, state text, current integer, has_boss integer default 0);')
     cursor.execute('CREATE TABLE IF NOT EXISTS state_changes (uuid blob, time text default current_timestamp, state text);')
