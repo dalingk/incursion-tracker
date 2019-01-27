@@ -4,7 +4,11 @@ import aiosqlite
 from sanic import Sanic
 from sanic.response import json
 
-DB_FILE = os.environ['DB_FILE']
+DB_FILE = os.environ.get('DB_FILE', 'incursion.db')
+SANIC_PORT = int(os.environ.get('SANIC_PORT', 3000))
+SANIC_HOST = os.environ.get('SANIC_HOST', '0.0.0.0')
+SANIC_SOCKET = os.environ.get('SANIC_SOCKET', None)
+SANIC_LOG = os.environ.get('SANIC_LOG', 'True') == 'False'
 app = Sanic()
 
 async def get_incursion_data():
@@ -27,4 +31,4 @@ async def test(request):
     return json(await get_incursion_data())
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=3000)
+    app.run(host=SANIC_HOST, port=SANIC_PORT, access_log=SANIC_LOG)
