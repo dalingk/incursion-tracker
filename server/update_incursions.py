@@ -4,7 +4,7 @@ import sqlite3
 import uuid
 from pprint import pprint
 
-DB_FILE = os.environ['DB_FILE']
+DB_FILE = os.environ.get('DB_FILE', 'incursion.db')
 API_URL = 'https://esi.evetech.net/latest/incursions?datasource=tranquility'
 
 data = requests.get(API_URL)
