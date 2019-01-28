@@ -116,3 +116,16 @@ export interface Faction {
     faction_id: number;
     expire?: Date;
 }
+
+export interface HistoryItem {
+    state: 'string';
+    constellation_id: number;
+    has_boss: boolean;
+    history: {
+        [state: string]: string;
+    };
+}
+
+export interface IncursionHistory {
+    [constellation_id: number]: HistoryItem;
+}
