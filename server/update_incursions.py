@@ -20,7 +20,7 @@ def establish_incursion(cursor, constellation_id, state):
 def change_state(cursor, incursion_id, new_state):
     """Change state of current incursion."""
     cursor.execute('INSERT INTO state_changes (uuid, state) VALUES (?, ?)', (incursion_id.bytes, new_state))
-    if new_state in ['established', 'mobilizing', 'defeated']:
+    if new_state in ['established', 'mobilizing', 'withdrawing', 'defeated']:
         cursor.execute('UPDATE current_incursion set state = ? where uuid = ?;', (new_state, incursion_id.bytes))
     elif new_state == 'boss':
         cursor.execute('UPDATE current_incursion set has_boss = 1 where uuid = ?;', (incursion_id.bytes,))
