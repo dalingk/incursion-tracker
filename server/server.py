@@ -19,9 +19,9 @@ async def get_incursion_data():
         data = await cursor.fetchall()
         for x in data:
             if x[1] not in incursions:
-                incursions[x[1]] = {'uuid': str(uuid.UUID(bytes=x[0])), 'constellation_id': x[1], 'state': x[2], 'has_boss': bool(x[3]), 'last_states': {x[4]: x[5]}}
+                incursions[x[1]] = {'constellation_id': x[1], 'state': x[2], 'has_boss': bool(x[3]), 'history': {x[4]: x[5]}}
             else:
-                incursions[x[1]]['last_states'][x[4]] = x[5]
+                incursions[x[1]]['history'][x[4]] = x[5]
     return incursions
     
     
