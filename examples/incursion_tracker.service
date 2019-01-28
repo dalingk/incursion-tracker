@@ -1,0 +1,18 @@
+[Unit]
+Description=Incursion tracker server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/path/to/server
+ExecStart=/path/to/venv/python server.py
+Restart=on-failure
+Environment=DB_FILE=
+Environment=SANIC_PORT=3500
+Environment=SANIC_HOST=localhost
+Environment=SANIC_LOG=False
+
+[Install]
+WantedBy=multi-user.target

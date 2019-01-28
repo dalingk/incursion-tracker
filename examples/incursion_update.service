@@ -1,0 +1,14 @@
+[Unit]
+Description=Update incursion tracker database
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/path/to/server
+ExecStart=/path/to/venv/python update_incursions.py
+Environment=DB_FILE=/path/to/incursion.db
+
+[Install]
+WantedBy=multi-user.target
