@@ -28,10 +28,11 @@ function fromEntries(iterable: any[]) {
 }
 
 class ESIData {
-    db: IDBDatabase;
-    cacheExpireDate: Date;
-    bouncer: Map<string, Promise<any>>;
-    sovUpdate: Promise<boolean>;
+    private db: IDBDatabase;
+    private cacheExpireDate: Date;
+    private bouncer: Map<string, Promise<any>>;
+    private sovUpdate: Promise<boolean>;
+    private historyData: Promise<ESI.IncursionHistory>;
     constructor(db: IDBDatabase) {
         this.db = db;
         let today = new Date();
@@ -39,6 +40,7 @@ class ESIData {
         this.cacheExpireDate = today;
         this.bouncer = new Map();
         this.sovUpdate = this.initSov();
+        this.historyData = this.loadHistory();
     }
     private checkCache(storeName: string, key: any): Promise<any> {
         let objectStore = this.db
@@ -267,6 +269,18 @@ class ESIData {
         hubJumps.sort((a, b) => a[1] - b[1]);
         return [hubJumps[0][0], hubJumps[0][1]];
     }
+    loadHistory(): Promise<ESI.IncursionHistory> {
+        return new Promise((resolve, reject) => {
+            fetch('https://dalingk.com/incursion/api/')
+                .then(request => request.json())
+                .then(data => resolve(data))
+                .catch(err => reject(err));
+        });
+    }
+    async history(constellationID: number): Promise<ESI.HistoryItem> {
+        let data = await this.historyData;
+        return data[constellationID];
+    }
     initSov(): Promise<boolean> {
         let expireDate = new Date();
         let sovCache = this.db
@@ -395,10 +409,49 @@ class IncursionDisplay {
         });
         return constellationElement;
     }
-    state(state: string) {
-        return new Text(
-            'State: ' + state.charAt(0).toUpperCase() + state.slice(1)
+    state(constellationID: number, state: string) {
+        const display = document.createElement('div');
+        const current = document.createElement('div');
+        current.appendChild(new Text('State: '));
+        display.appendChild(current);
+        const link = document.createElement('a');
+        link.href = '#';
+        let visible = false;
+        const history = document.createElement('ul');
+        history.style.display = visible ? 'block' : 'none';
+        history.style.listStyleType = 'none';
+        history.style.paddingLeft = '0';
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            visible = !visible;
+            history.style.display = visible ? 'block' : 'none';
+        });
+        this.data.history(constellationID).then(data => {
+            let sortedHistory = Object.entries(data.history);
+            sortedHistory.sort((a, b) => ('' + b[1]).localeCompare(a[1]));
+            sortedHistory.map(([state, date]) => {
+                const item = document.createElement('li');
+                let formattedState =
+                    state.charAt(0).toUpperCase() + state.slice(1);
+                if (state == 'boss') {
+                    formattedState = 'Boss Spawned';
+                }
+                item.appendChild(
+                    new Text(
+                        `${formattedState}: ${new Date(
+                            date + 'Z'
+                        ).toLocaleString()}`
+                    )
+                );
+                history.appendChild(item);
+            });
+            display.appendChild(history);
+        });
+        link.appendChild(
+            new Text(state.charAt(0).toUpperCase() + state.slice(1))
         );
+        current.appendChild(link);
+        return display;
     }
     system(systemID: number) {
         const systemLink = document.createElement('a');
@@ -762,7 +815,9 @@ function main() {
             display.appendChild(constellationName);
 
             const state = document.createElement('div');
-            state.appendChild(renderer.state(incursion.state));
+            state.appendChild(
+                renderer.state(incursion.constellation_id, incursion.state)
+            );
             display.appendChild(state);
 
             let influence = document.createElement('div');
