@@ -9,7 +9,8 @@ Features:
   * Dark theme
   * Nearest trade hub (Jita, Amarr, Rens, Dodixie, Hek)
   * Sovereignty of HQ system
+  * Tracks when incursion state changes occur
 
 Upcoming features:
-  * Incursion tracking/timers
+  * Incursion timers
   * Better support for your location and avoid
