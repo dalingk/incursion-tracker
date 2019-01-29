@@ -29,7 +29,7 @@ def change_state(cursor, incursion_id, new_state):
 
 def defeat_incursion(cursor, constellation_id):
     """Defeat incursion."""
-    cursor.execute('INSERT INTO state_changes (uuid, state) VALUES SELECT uuid, \'defeated\' from current_incursion WHERE constellation_id = ? AND current = 1;', (constellation_id,))
+    cursor.execute('INSERT INTO state_changes (uuid, state) SELECT uuid, \'defeated\' from current_incursion WHERE constellation_id = ? AND current = 1;', (constellation_id,))
     cursor.execute('UPDATE current_incursion SET current = 0 WHERE uuid = (SELECT uuid FROM current_incursion WHERE constellation_id = ? AND current = 1);', (constellation_id,))
 
 
