@@ -1,6 +1,4 @@
 import * as ESI from './esiDefinitions';
-import { SSL_OP_EPHEMERAL_RSA } from 'constants';
-import { resolve } from 'path';
 
 const securityColors = Object.freeze([
     '#F00000',
@@ -100,7 +98,7 @@ class ESIData {
         );
         if (
             constellationCache &&
-            constellationCache.date > this.cacheExpireDate
+            constellationCache.date.getTime() < this.cacheExpireDate.getTime()
         ) {
             return constellationCache;
         } else {
@@ -117,7 +115,7 @@ class ESIData {
     }
     async regionData(regionID: number): Promise<ESI.Region> {
         let regionCache = await this.checkCache('region', regionID);
-        if (regionCache && regionCache.date > this.cacheExpireDate) {
+        if (regionCache && regionCache.date.getTime() < this.cacheExpireDate.getTime()) {
             return regionCache;
         } else {
             let regionJSON = await this.fetchJSON(
@@ -134,7 +132,7 @@ class ESIData {
     async systemData(systemID: number): Promise<ESI.System> {
         // Consider adding casts for checkCache calls
         let systemCache = await this.checkCache('system', systemID);
-        if (systemCache && systemCache.date > this.cacheExpireDate) {
+        if (systemCache && systemCache.date.getTime() < this.cacheExpireDate.getTime()) {
             return systemCache;
         } else {
             let systemJSON = await this.fetchJSON(
@@ -227,7 +225,7 @@ class ESIData {
         ]);
         let cacheExpire = new Date();
         cacheExpire.setDate(cacheExpire.getDate() - 7);
-        if (routeCache && routeCache.date > cacheExpire) {
+        if (routeCache && routeCache.date.getTime() > cacheExpire.getTime()) {
             return routeCache.hops;
         }
         let routeJSON = await this.fetchJSON(
@@ -292,7 +290,7 @@ class ESIData {
                 if (
                     sovCache.result &&
                     sovCache.result.value &&
-                    sovCache.result.value.expires > expireDate
+                    sovCache.result.value.expires.getTime() > expireDate.getTime()
                 ) {
                     resolve(true);
                 } else {
@@ -321,7 +319,7 @@ class ESIData {
     async faction(factionID: number): Promise<ESI.Faction> {
         let expireDate = new Date();
         let factionCache = await this.checkCache('faction', factionID);
-        if (factionCache && factionCache.expire > expireDate) {
+        if (factionCache && factionCache.expire.getTime() > expireDate.getTime()) {
             return factionCache;
         }
         expireDate.setDate(expireDate.getDate() + 1);
@@ -348,7 +346,7 @@ class ESIData {
     async alliance(allianceID: number): Promise<ESI.Alliance> {
         let expireDate = new Date();
         let allianceCache = await this.checkCache('alliance', allianceID);
-        if (allianceCache && allianceCache.expire > expireDate) {
+        if (allianceCache && allianceCache.expire.getTime() > expireDate.getTime()) {
             return allianceCache;
         }
         let alliance = await this.fetchJSON(`alliances/${allianceID}`);
@@ -369,7 +367,7 @@ class ESIData {
         id: number
     ): Promise<ESI.Positioned> {
         let cachedData = await this.checkCache(type, id);
-        if (cachedData && cachedData.date > this.cacheExpireDate) {
+        if (cachedData && cachedData.date.getTime() < this.cacheExpireDate.getTime()) {
             return cachedData;
         } else {
             let universeJSON = await this.fetchJSON(`universe/${type}s/${id}`);
