@@ -415,7 +415,9 @@ class IncursionDisplay {
         const link = document.createElement('a');
         link.href = '#';
         let visible = false;
-        const history = document.createElement('ul');
+        const history = document.createElement('table');
+        history.classList.add('events');
+        const historyBody = document.createElement('tbody');
         history.style.display = visible ? 'block' : 'none';
         history.style.listStyleType = 'none';
         history.style.paddingLeft = '0';
@@ -424,25 +426,48 @@ class IncursionDisplay {
             visible = !visible;
             history.style.display = visible ? 'block' : 'none';
         });
+        history.appendChild(historyBody);
         this.data.history(constellationID).then(data => {
             let sortedHistory = Object.entries(data.history);
             sortedHistory.sort((a, b) => ('' + b[1]).localeCompare(a[1]));
-            sortedHistory.map(([state, date]) => {
-                const item = document.createElement('li');
-                let formattedState =
-                    state.charAt(0).toUpperCase() + state.slice(1);
-                if (state == 'boss') {
-                    formattedState = 'Boss Spawned';
+            let sortedMap = sortedHistory.reduce((allDates: Map<string, [string, Date][]>, [state, date]) => {
+                let currentDate = new Date(date + 'Z');
+                let key = `${currentDate.getFullYear()}-${('' + (currentDate.getMonth() + 1)).padStart(2, '0')}-${('' + currentDate.getDate()).padStart(2, '0')}`;
+                let dateArray = allDates.get(key)
+                if (!dateArray) {
+                    let temp: [string, Date][] = [];
+                    allDates.set(key, temp);
+                    dateArray = temp;
                 }
-                item.appendChild(
-                    new Text(
-                        `${formattedState}: ${new Date(
-                            date + 'Z'
-                        ).toLocaleString()}`
-                    )
-                );
-                history.appendChild(item);
-            });
+                dateArray.push([state, currentDate]);
+                return allDates;
+            }, new Map());
+            let iterator = sortedMap.entries();
+            let value = iterator.next().value;
+            while (value) {
+                let [date, events] = value;
+                const dateDisplay = document.createDocumentFragment();
+                events.map(([state, eventDate], idx) => {
+                    const row = document.createElement('tr');
+                    if (idx === 0) {
+                        const shortDate = document.createElement('td');
+                        shortDate.appendChild(new Text(`${date}`));
+                        shortDate.rowSpan = events.length;
+                        shortDate.style.verticalAlign = 'top';
+                        row.appendChild(shortDate);
+                    }
+                    const time = document.createElement('td');
+                    time.classList.add('pad');
+                    time.appendChild(new Text(`${('' + eventDate.getHours()).padStart(2, '0')}:${('' + eventDate.getMinutes()).padStart(2, '0')}`));
+                    const stateElement = document.createElement('td');
+                    stateElement.appendChild(new Text(state.charAt(0).toUpperCase() + state.slice(1)));
+                    row.appendChild(time);
+                    row.appendChild(stateElement);
+                    dateDisplay.appendChild(row);
+                });
+                historyBody.appendChild(dateDisplay);
+                value = iterator.next().value;
+            }
             display.appendChild(history);
         });
         link.appendChild(
@@ -854,6 +879,7 @@ function main() {
 
             let sortSystems: Function[] = [];
             let affectedSystems = document.createElement('table');
+            affectedSystems.classList.add('systems');
             let affectedSystemsBody = document.createElement('tbody');
             incursion.infested_solar_systems.forEach(systemID => {
                 const row = renderer.systemRow(
