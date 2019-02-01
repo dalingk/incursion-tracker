@@ -115,7 +115,10 @@ class ESIData {
     }
     async regionData(regionID: number): Promise<ESI.Region> {
         let regionCache = await this.checkCache('region', regionID);
-        if (regionCache && regionCache.date.getTime() < this.cacheExpireDate.getTime()) {
+        if (
+            regionCache &&
+            regionCache.date.getTime() < this.cacheExpireDate.getTime()
+        ) {
             return regionCache;
         } else {
             let regionJSON = await this.fetchJSON(
@@ -132,7 +135,10 @@ class ESIData {
     async systemData(systemID: number): Promise<ESI.System> {
         // Consider adding casts for checkCache calls
         let systemCache = await this.checkCache('system', systemID);
-        if (systemCache && systemCache.date.getTime() < this.cacheExpireDate.getTime()) {
+        if (
+            systemCache &&
+            systemCache.date.getTime() < this.cacheExpireDate.getTime()
+        ) {
             return systemCache;
         } else {
             let systemJSON = await this.fetchJSON(
@@ -290,7 +296,8 @@ class ESIData {
                 if (
                     sovCache.result &&
                     sovCache.result.value &&
-                    sovCache.result.value.expires.getTime() > expireDate.getTime()
+                    sovCache.result.value.expires.getTime() >
+                        expireDate.getTime()
                 ) {
                     resolve(true);
                 } else {
@@ -319,7 +326,10 @@ class ESIData {
     async faction(factionID: number): Promise<ESI.Faction> {
         let expireDate = new Date();
         let factionCache = await this.checkCache('faction', factionID);
-        if (factionCache && factionCache.expire.getTime() > expireDate.getTime()) {
+        if (
+            factionCache &&
+            factionCache.expire.getTime() > expireDate.getTime()
+        ) {
             return factionCache;
         }
         expireDate.setDate(expireDate.getDate() + 1);
@@ -346,7 +356,10 @@ class ESIData {
     async alliance(allianceID: number): Promise<ESI.Alliance> {
         let expireDate = new Date();
         let allianceCache = await this.checkCache('alliance', allianceID);
-        if (allianceCache && allianceCache.expire.getTime() > expireDate.getTime()) {
+        if (
+            allianceCache &&
+            allianceCache.expire.getTime() > expireDate.getTime()
+        ) {
             return allianceCache;
         }
         let alliance = await this.fetchJSON(`alliances/${allianceID}`);
@@ -367,7 +380,10 @@ class ESIData {
         id: number
     ): Promise<ESI.Positioned> {
         let cachedData = await this.checkCache(type, id);
-        if (cachedData && cachedData.date.getTime() < this.cacheExpireDate.getTime()) {
+        if (
+            cachedData &&
+            cachedData.date.getTime() < this.cacheExpireDate.getTime()
+        ) {
             return cachedData;
         } else {
             let universeJSON = await this.fetchJSON(`universe/${type}s/${id}`);
@@ -430,18 +446,26 @@ class IncursionDisplay {
         this.data.history(constellationID).then(data => {
             let sortedHistory = Object.entries(data.history);
             sortedHistory.sort((a, b) => ('' + b[1]).localeCompare(a[1]));
-            let sortedMap = sortedHistory.reduce((allDates: Map<string, [string, Date][]>, [state, date]) => {
-                let currentDate = new Date(date + 'Z');
-                let key = `${currentDate.getFullYear()}-${('' + (currentDate.getMonth() + 1)).padStart(2, '0')}-${('' + currentDate.getDate()).padStart(2, '0')}`;
-                let dateArray = allDates.get(key)
-                if (!dateArray) {
-                    let temp: [string, Date][] = [];
-                    allDates.set(key, temp);
-                    dateArray = temp;
-                }
-                dateArray.push([state, currentDate]);
-                return allDates;
-            }, new Map());
+            let sortedMap = sortedHistory.reduce(
+                (allDates: Map<string, [string, Date][]>, [state, date]) => {
+                    let currentDate = new Date(date + 'Z');
+                    let key = `${currentDate.getFullYear()}-${(
+                        '' +
+                        (currentDate.getMonth() + 1)
+                    ).padStart(2, '0')}-${(
+                        '' + currentDate.getUTCDate()
+                    ).padStart(2, '0')}`;
+                    let dateArray = allDates.get(key);
+                    if (!dateArray) {
+                        let temp: [string, Date][] = [];
+                        allDates.set(key, temp);
+                        dateArray = temp;
+                    }
+                    dateArray.push([state, currentDate]);
+                    return allDates;
+                },
+                new Map()
+            );
             let iterator = sortedMap.entries();
             let value = iterator.next().value;
             while (value) {
@@ -458,9 +482,21 @@ class IncursionDisplay {
                     }
                     const time = document.createElement('td');
                     time.classList.add('pad');
-                    time.appendChild(new Text(`${('' + eventDate.getHours()).padStart(2, '0')}:${('' + eventDate.getMinutes()).padStart(2, '0')}`));
+                    time.appendChild(
+                        new Text(
+                            `${('' + eventDate.getUTCHours()).padStart(
+                                2,
+                                '0'
+                            )}:${('' + eventDate.getMinutes()).padStart(
+                                2,
+                                '0'
+                            )}`
+                        )
+                    );
                     const stateElement = document.createElement('td');
-                    stateElement.appendChild(new Text(state.charAt(0).toUpperCase() + state.slice(1)));
+                    stateElement.appendChild(
+                        new Text(state.charAt(0).toUpperCase() + state.slice(1))
+                    );
                     row.appendChild(time);
                     row.appendChild(stateElement);
                     dateDisplay.appendChild(row);
