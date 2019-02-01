@@ -34,7 +34,7 @@ class ESIData {
     constructor(db: IDBDatabase) {
         this.db = db;
         let today = new Date();
-        today.setMonth(today.getDate() - 30);
+        today.setDate(today.getDate() - 30);
         this.cacheExpireDate = today;
         this.bouncer = new Map();
         this.sovUpdate = this.initSov();
@@ -98,7 +98,8 @@ class ESIData {
         );
         if (
             constellationCache &&
-            constellationCache.date.getTime() < this.cacheExpireDate.getTime()
+            constellationCache.date &&
+            constellationCache.date.getTime() > this.cacheExpireDate.getTime()
         ) {
             return constellationCache;
         } else {
@@ -117,7 +118,7 @@ class ESIData {
         let regionCache = await this.checkCache('region', regionID);
         if (
             regionCache &&
-            regionCache.date.getTime() < this.cacheExpireDate.getTime()
+            regionCache.date.getTime() > this.cacheExpireDate.getTime()
         ) {
             return regionCache;
         } else {
@@ -137,7 +138,7 @@ class ESIData {
         let systemCache = await this.checkCache('system', systemID);
         if (
             systemCache &&
-            systemCache.date.getTime() < this.cacheExpireDate.getTime()
+            systemCache.date.getTime() > this.cacheExpireDate.getTime()
         ) {
             return systemCache;
         } else {
@@ -382,7 +383,7 @@ class ESIData {
         let cachedData = await this.checkCache(type, id);
         if (
             cachedData &&
-            cachedData.date.getTime() < this.cacheExpireDate.getTime()
+            cachedData.date.getTime() > this.cacheExpireDate.getTime()
         ) {
             return cachedData;
         } else {
