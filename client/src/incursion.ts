@@ -1013,6 +1013,19 @@ function main() {
             (a, b) => b[1].security_status - a[1].security_status
         );
         const sortedIncursions = document.createElement('main');
+        const lastUpdated = document.createElement('div');
+        lastUpdated.style.marginTop = '1em';
+        lastUpdated.style.textAlign = 'center';
+        let updatedDate = new Date();
+        lastUpdated.appendChild(
+            new Text(
+                `Last Updated: ${('' + updatedDate.getUTCHours()).padStart(
+                    2,
+                    '0'
+                )}:${('' + updatedDate.getMinutes()).padStart(2, '0')}`
+            )
+        );
+        sortedIncursions.appendChild(lastUpdated);
         incursionSecurities.forEach(([element]) =>
             sortedIncursions.appendChild(element)
         );
