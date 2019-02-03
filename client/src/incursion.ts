@@ -724,7 +724,7 @@ class RoutePlanner {
                 newText = new Text(
                     `Show ${
                         target.jumpCount > 0
-                            ? ' ' + target.jumpCount + ' jumps'
+                            ? ' ' + (target.jumpCount - 1) + ' jumps'
                             : ''
                     }`
                 );
@@ -734,7 +734,7 @@ class RoutePlanner {
                 newText = new Text(
                     `Hide ${
                         target.jumpCount > 0
-                            ? ' ' + target.jumpCount + ' jumps'
+                            ? ' ' + (target.jumpCount - 1) + ' jumps'
                             : ''
                     }`
                 );
@@ -778,7 +778,7 @@ class RoutePlanner {
             this.avoidIDs
         );
         const routeList = document.createElement('ol');
-        const routeCount = new Text(`Show ${hops.length} jumps`);
+        const routeCount = new Text(`Show ${hops.length - 1} jumps`);
         routeList.style.display = 'none';
         hops.map(systemID => {
             const item = document.createElement('li');
@@ -813,7 +813,7 @@ class RoutePlanner {
                 target.appendChild(this.renderer.system(hubID));
                 target.appendChild(new Text(' ('));
                 target.appendChild(this.renderer.systemSecurity(hubID));
-                target.appendChild(new Text(`) ${jumps}j`));
+                target.appendChild(new Text(`) ${jumps - 1}j`));
                 target.normalize();
             });
         return target;
