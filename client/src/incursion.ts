@@ -76,17 +76,22 @@ class ESIData {
                         .catch(err => reject(err));
                 })
             );
-            return await this.bouncer.get(queryURL);
-        } catch {
+            let data = await this.bouncer.get(queryURL);
+            if (data.error) {
+                throw data;
+            }
+            return data;
+        } catch (e) {
             let errorDiv = document.createElement('div');
             errorDiv.classList.add('error');
             errorDiv.appendChild(
                 new Text('Unable to retrieve data from Eve APIs.')
             );
             document.body.appendChild(errorDiv);
+            return { error: e };
         }
     }
-    async incursionData(): Promise<Array<ESI.Incursion>> {
+    async incursionData(): Promise<ESI.Incursion[]> {
         return await this.fetchJSON('incursions');
     }
     async constellationData(
@@ -862,6 +867,9 @@ function main() {
         let renderer = new IncursionDisplay(esiAPI);
         let incursionData = await esiAPI.incursionData();
         let sortIncursions: Function[] = [];
+        if (incursionData.hasOwnProperty('error')) {
+            return;
+        }
         incursionData.forEach(async incursion => {
             let display = document.createElement('section');
 
