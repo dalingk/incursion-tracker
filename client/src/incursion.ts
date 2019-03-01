@@ -279,7 +279,7 @@ class ESIData {
         hubJumps.sort((a, b) => a[1] - b[1]);
         return [hubJumps[0][0], hubJumps[0][1]];
     }
-    loadHistory(): Promise<ESI.IncursionHistory> {
+    private loadHistory(): Promise<ESI.IncursionHistory> {
         return new Promise((resolve, reject) => {
             fetch('https://dalingk.com/incursion/api/')
                 .then(request => request.json())
@@ -965,6 +965,7 @@ function main() {
                 let arrangeSystems: [number, number, HTMLElement][] = [];
                 while (unvisitedSystems.length > 0) {
                     let newUnvisited: number[] = [];
+                    unvisitedSystems.sort((a,b) => b-a);
                     unvisitedSystems.forEach(systemID => {
                         if (!visitedSystems.has(systemID)) {
                             visitedSystems.add(systemID);
