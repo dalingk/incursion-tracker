@@ -963,15 +963,29 @@ function main() {
                 let jumps = 0;
                 let furthest = incursion.staging_solar_system_id;
                 let arrangeSystems: [number, number, HTMLElement][] = [];
+                let systemIDX = 0;
+                let typeIndicies = {
+                    v: Math.floor(systemArray.length / 2) + 1,
+                    a: systemArray.length - 1
+                };
                 while (unvisitedSystems.length > 0) {
                     let newUnvisited: number[] = [];
-                    unvisitedSystems.sort((a,b) => b-a);
+                    unvisitedSystems.sort((a, b) => b - a);
                     unvisitedSystems.forEach(systemID => {
                         if (!visitedSystems.has(systemID)) {
                             visitedSystems.add(systemID);
                             if (jumps > 0) {
+                                let type = 'HQ';
+                                if (systemIDX < typeIndicies.v) {
+                                    type = 'VG';
+                                } else if (
+                                    systemIDX >= typeIndicies.v &&
+                                    systemIDX < typeIndicies.a
+                                ) {
+                                    type = 'AS';
+                                }
                                 systems[systemID].jumpCount.appendChild(
-                                    new Text(`${jumps}`)
+                                    new Text(`${type}`)
                                 );
                             }
                             newUnvisited = [
@@ -991,6 +1005,7 @@ function main() {
                                 systemID,
                                 systems[systemID].row
                             ]);
+                            systemIDX += 1;
                         }
                     });
                     unvisitedSystems = newUnvisited;
