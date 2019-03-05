@@ -984,9 +984,12 @@ function main() {
                                 ) {
                                     type = 'AS';
                                 }
-                                systems[systemID].jumpCount.appendChild(
+                                let span = document.createElement('span');
+                                span.title = `${jumps} jumps from staging`;
+                                span.appendChild(
                                     new Text(`${type}`)
                                 );
+                                systems[systemID].jumpCount.appendChild(span);
                             }
                             newUnvisited = [
                                 ...newUnvisited,
