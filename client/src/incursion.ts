@@ -422,7 +422,7 @@ class IncursionDisplay {
                 .then(
                     ({ name }) =>
                         (constellationElement.href = `https://evemaps.dotlan.net/map/${name.replace(
-                            ' ',
+                            / /g,
                             '_'
                         )}/${constellation.name}`)
                 );
@@ -574,6 +574,10 @@ class IncursionDisplay {
     }
     systemSovereignty(systemID: number) {
         const sovDisplay = document.createElement('div');
+        sovDisplay.style.maxWidth = '300px';
+        sovDisplay.style.whiteSpace = 'nowrap';
+        sovDisplay.style.textOverflow = 'ellipsis';
+        sovDisplay.style.overflow = 'hidden';
         sovDisplay.appendChild(new Text('Sovereignty: '));
         this.data.systemSovereignty(systemID).then(async systemData => {
             if (
@@ -581,14 +585,14 @@ class IncursionDisplay {
                 systemData.alliance_id
             ) {
                 const link = document.createElement('a');
-                let { name, ticker } = await this.data.alliance(
+                let { name } = await this.data.alliance(
                     systemData.alliance_id
                 );
                 link.href = `https://evemaps.dotlan.net/alliance/${name.replace(
-                    ' ',
+                    / /g,
                     '_'
                 )}`;
-                link.title = ticker;
+                link.title = name;
                 link.appendChild(new Text(`${name}`));
                 sovDisplay.appendChild(link);
             } else if (
