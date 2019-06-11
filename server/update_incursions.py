@@ -56,7 +56,7 @@ with sqlite3.connect(DB_FILE) as conn:
     eve_incursions = data.json()
     for item in eve_incursions:
         if item['constellation_id'] not in stored_incursions:
-            staging_security = round(staging_systems[item['staging_solar_system_id']]['security_status'], 2)
+            staging_security = round(staging_systems[item['staging_solar_system_id']]['security_status'], 1)
             security_name = 'high'
             if staging_security < 0.0:
                 security_name = 'null'
