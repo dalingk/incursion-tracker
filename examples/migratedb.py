@@ -25,7 +25,7 @@ with sqlite3.connect('incursion.db') as conn:
                     'https://esi.evetech.net/latest/universe/systems/{}'.format(system_id)
                 ).json()
             except:
-                print(system_id)
+                print('Failed parsing JSON for system {}'.format(system_id))
                 continue
             rounded_security = round(system_json['security_status'], 2)
             if rounded_security < 0.0:
