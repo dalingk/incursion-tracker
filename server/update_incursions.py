@@ -9,11 +9,24 @@ API_URL = 'https://esi.evetech.net/latest/incursions?datasource=tranquility'
 
 data = requests.get(API_URL)
 data.raise_for_status()
+staging_systems = {}
+for incursion in data.json():
+    staging_id = incursion['staging_solar_system_id']
+    system = requests.get(
+        'https://esi.evetech.net/latest/universe/systems/{}?datasource=tranquility'.format(staging_id)
+    )
+    system.raise_for_status()
+    staging_systems[staging_id] = system.json()
 
-def establish_incursion(cursor, constellation_id, state):
+def establish_incursion(cursor, constellation_id, state, security):
     """Establish a new incursion in the database."""
     inc_uuid = uuid.uuid4()
-    cursor.execute('INSERT INTO current_incursion (uuid, constellation_id, state, current) VALUES (?, ?, ?, ?)', (inc_uuid.bytes, constellation_id, state, True))
+    cursor.execute(
+        'INSERT INTO current_incursion (uuid, constellation_id, state, current, security)'
+        ' VALUES (?, ?, ?, ?, ?)', (
+            inc_uuid.bytes, constellation_id, state, True, security
+        )
+    )
     change_state(cursor, inc_uuid, state)
     return inc_uuid
 
@@ -35,7 +48,7 @@ def defeat_incursion(cursor, constellation_id):
 
 with sqlite3.connect(DB_FILE) as conn:
     cursor = conn.cursor()
-    cursor.execute('CREATE TABLE IF NOT EXISTS current_incursion (uuid blob, constellation_id integer, state text, current integer, has_boss integer default 0);')
+    cursor.execute('CREATE TABLE IF NOT EXISTS current_incursion (uuid blob, constellation_id integer, state text, current integer, has_boss integer default 0, security text);')
     cursor.execute('CREATE TABLE IF NOT EXISTS state_changes (uuid blob, time text default current_timestamp, state text);')
     cursor.execute('SELECT current_incursion.uuid, constellation_id, current_incursion.state, has_boss FROM current_incursion where current_incursion.current = 1;')
     cursor_data = cursor.fetchall()
@@ -43,7 +56,13 @@ with sqlite3.connect(DB_FILE) as conn:
     eve_incursions = data.json()
     for item in eve_incursions:
         if item['constellation_id'] not in stored_incursions:
-            establish_incursion(cursor, item['constellation_id'], item['state'])
+            staging_security = round(staging_systems[item['staging_solar_system_id']]['security_status'], 2)
+            security_name = 'high'
+            if staging_security < 0.0:
+                security_name = 'null'
+            elif staging_security < 0.5:
+                security_name = 'low'
+            establish_incursion(cursor, item['constellation_id'], item['state'], security_name)
         if item['constellation_id'] in stored_incursions:
             constellation = item['constellation_id']
             stored = stored_incursions[constellation]
