@@ -8,7 +8,7 @@ DB_FILE = os.environ.get('DB_FILE', 'incursion.db')
 SANIC_PORT = int(os.environ.get('SANIC_PORT', 3000))
 SANIC_HOST = os.environ.get('SANIC_HOST', '0.0.0.0')
 SANIC_SOCKET = os.environ.get('SANIC_SOCKET', None)
-SANIC_LOG = os.environ.get('SANIC_LOG', 'True') == 'False'
+SANIC_LOG = os.environ.get('SANIC_LOG', 'True') == 'True'
 app = Sanic()
 
 async def get_incursion_data():
@@ -56,4 +56,7 @@ async def get_timers(request):
     return json(await get_incursion_history())
 
 if __name__ == '__main__':
-    app.run(host=SANIC_HOST, port=SANIC_PORT, access_log=SANIC_LOG)
+    if SANIC_SOCKET:
+        app.run(socket=SANIC_SOCKET, access_log=SANIC_LOG)
+    else:
+        app.run(host=SANIC_HOST, port=SANIC_PORT, access_log=SANIC_LOG)
