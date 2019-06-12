@@ -23,12 +23,37 @@ async def get_incursion_data():
             else:
                 incursions[x[1]]['history'][x[4]] = x[5]
     return incursions
+
+async def get_incursion_history():
+    """Get timer information for incursions."""
+    incursion_count = {'high': 1, 'low': 1, 'null': 3}
+    incursions = {'high': [], 'low': [], 'null': []}
+    async with aiosqlite.connect(DB_FILE) as db:
+        cursor = await db.execute(
+            'select constellation_id, security, state, time from '
+            'state_changes natural join current_incursion '
+            'where time >= (select min(time) from state_changes s '
+            'join current_incursion c on s.uuid = c.uuid '
+            'where c.state != \'defeated\');'
+        )
+        data = await cursor.fetchall()
+        for (constellation_id, security, state, time) in reversed(data):
+            if state == 'defeated' and incursion_count[security] > 0:
+                incursions[security].append({
+                    'constellation_id': constellation_id, 'time': time
+                })
+            incursion_count[security] -= 1
+        return incursions
     
     
 
 @app.route('/')
 async def test(request):
     return json(await get_incursion_data())
+
+@app.route('/timers')
+async def get_timers(request):
+    return json(await get_incursion_history())
 
 if __name__ == '__main__':
     app.run(host=SANIC_HOST, port=SANIC_PORT, access_log=SANIC_LOG)
