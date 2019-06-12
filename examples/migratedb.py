@@ -28,7 +28,7 @@ with sqlite3.connect('incursion.db') as conn:
                 print('Failed parsing JSON for system {}'.format(system_id))
                 continue
             rounded_security = round(system_json['security_status'], 1)
-            if rounded_security < 0.0:
+            if rounded_security <= 0.0:
                 null += 1
             elif rounded_security < .5:
                 low += 1
