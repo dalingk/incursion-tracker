@@ -31,6 +31,7 @@ class ESIData {
     private bouncer: Map<string, Promise<any>>;
     private sovUpdate: Promise<boolean>;
     private historyData: Promise<ESI.IncursionHistory>;
+    private timerData: Promise<ESI.TimerHistory>;
     constructor(db: IDBDatabase) {
         this.db = db;
         let today = new Date();
@@ -39,6 +40,7 @@ class ESIData {
         this.bouncer = new Map();
         this.sovUpdate = this.initSov();
         this.historyData = this.loadHistory();
+        this.timerData = this.loadTimer();
     }
     private checkCache(storeName: string, key: any): Promise<any> {
         let objectStore = this.db
@@ -290,6 +292,26 @@ class ESIData {
     async history(constellationID: number): Promise<ESI.HistoryItem> {
         let data = await this.historyData;
         return data[constellationID];
+    }
+    private loadTimer(): Promise<ESI.TimerHistory> {
+        return new Promise((resolve, reject) => {
+            fetch('https://dalingk.com/incursion/api/timers')
+                .then(request => request.json())
+                .then((data: ESI.TimerHistory) => {
+                    for (const item in data) {
+                        data[item].sort(
+                            (a, b) =>
+                                new Date(a.time).getTime() -
+                                new Date(b.time).getTime()
+                        );
+                    }
+                    resolve(data);
+                })
+                .catch(err => reject(err));
+        });
+    }
+    async timer(): Promise<ESI.TimerHistory> {
+        return await this.timerData;
     }
     initSov(): Promise<boolean> {
         let expireDate = new Date();
@@ -585,9 +607,7 @@ class IncursionDisplay {
                 systemData.alliance_id
             ) {
                 const link = document.createElement('a');
-                let { name } = await this.data.alliance(
-                    systemData.alliance_id
-                );
+                let { name } = await this.data.alliance(systemData.alliance_id);
                 link.href = `https://evemaps.dotlan.net/alliance/${name.replace(
                     / /g,
                     '_'
@@ -604,6 +624,51 @@ class IncursionDisplay {
             }
         });
         return sovDisplay;
+    }
+    spawnTimers() {
+        const timerDisplay = document.createElement('div');
+        const currentTime = new Date();
+        const securityNames: any = {
+            // Fuck typescript
+            high: 'High Security',
+            low: 'Low Security',
+            null: 'Null Security'
+        };
+        function securityToDisplay(security: string): string {
+            if (security in securityNames) {
+                return securityNames[security];
+            }
+            return 'Unknown security';
+        }
+        this.data.timer().then(timerData => {
+            for (let security in timerData) {
+                const securityDisplay = securityToDisplay(security);
+                for (const timeString of timerData[security]) {
+                    const timerElement = document.createElement('div');
+
+                    const time = new Date(timeString.time);
+
+                    const timeP12 = new Date(time);
+                    timeP12.setHours(time.getHours() + 12);
+
+                    const timeP36 = new Date(time);
+                    timeP36.setHours(time.getHours() + 36);
+
+                    if (currentTime.getTime() < timeP12.getTime()) {
+                        const timeDelta = new Date(
+                            timeP12.getTime() - currentTime.getTime()
+                        );
+                        timerElement.appendChild(
+                            document.createTextNode(
+                                `${securityDisplay} can't spawn until ${timeP12.getUTCFullYear()}-${timeP12.getUTCMonth()}-${timeP12.getUTCDate()} ${timeP12.getUTCHours()}:${timeP12.getUTCMinutes()}`
+                            )
+                        );
+                    }
+                    timerDisplay.appendChild(timerElement);
+                }
+            }
+        });
+        return timerDisplay;
     }
     superCarrierIcon() {
         const icon = document.createElement('canvas');
@@ -990,9 +1055,7 @@ function main() {
                                 }
                                 let span = document.createElement('span');
                                 span.title = `${jumps} jumps from staging`;
-                                span.appendChild(
-                                    new Text(`${type}`)
-                                );
+                                span.appendChild(new Text(`${type}`));
                                 systems[systemID].jumpCount.appendChild(span);
                             }
                             newUnvisited = [
@@ -1057,6 +1120,9 @@ function main() {
             )
         );
         sortedIncursions.appendChild(lastUpdated);
+
+        sortedIncursions.appendChild(renderer.spawnTimers());
+
         incursionSecurities.forEach(([element]) =>
             sortedIncursions.appendChild(element)
         );

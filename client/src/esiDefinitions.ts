@@ -129,3 +129,12 @@ export interface HistoryItem {
 export interface IncursionHistory {
     [constellation_id: number]: HistoryItem;
 }
+
+export interface TimerItem {
+    constellation_id: number;
+    time: string;
+}
+
+export interface TimerHistory {
+    [security_status: string]: TimerItem[];
+}
