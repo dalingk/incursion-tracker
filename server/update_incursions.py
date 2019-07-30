@@ -50,6 +50,8 @@ with sqlite3.connect(DB_FILE) as conn:
     cursor = conn.cursor()
     cursor.execute('CREATE TABLE IF NOT EXISTS current_incursion (uuid blob, constellation_id integer, state text, current integer, has_boss integer default 0, security text);')
     cursor.execute('CREATE TABLE IF NOT EXISTS state_changes (uuid blob, time text default current_timestamp, state text);')
+    cursor.execute('CREATE INDEX IF NOT EXISTS current_incursion_uuid_idx on current_incursion (uuid);')
+    cursor.execute('CREATE INDEX IF NOT EXISTS state_changes_uuid_idx on state_changes (uuid);')
     cursor.execute('SELECT current_incursion.uuid, constellation_id, current_incursion.state, has_boss FROM current_incursion where current_incursion.current = 1;')
     cursor_data = cursor.fetchall()
     stored_incursions = {x[1]: {'uuid': uuid.UUID(bytes=x[0]), 'constellation_id': x[1], 'state': x[2], 'has_boss': x[3]} for x in cursor_data}
