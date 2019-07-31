@@ -24,25 +24,45 @@ async def get_incursion_data():
                 incursions[x[1]]['history'][x[4]] = x[5]
     return incursions
 
+def complete_history(incursion_history):
+    """Return True if incursion history is complete."""
+    return all(x <= 0 for x in incursion_history.values())
+
 async def get_incursion_history():
     """Get timer information for incursions."""
-    incursion_count = {'high': 1, 'low': 1, 'null': 3}
+    incursion_max = {'high': 1, 'low': 1, 'null': 3}
+    incursion_count = incursion_max.copy()
     incursions = {'high': [], 'low': [], 'null': []}
+    known_incursions = {}
+    defeated_incursions = set()
     async with aiosqlite.connect(DB_FILE) as db:
         cursor = await db.execute(
-            'select constellation_id, security, state, time from '
-            'state_changes natural join current_incursion '
-            'where time >= (select min(time) from state_changes s '
-            'join current_incursion c on s.uuid = c.uuid '
-            'where c.state != \'defeated\');'
+            'select uuid, constellation_id, security, state, time from '
+            'state_changes natural left join current_incursion '
+            ' order by time desc;'
         )
-        data = await cursor.fetchall()
-        for (constellation_id, security, state, time) in reversed(data):
-            if state == 'defeated' and incursion_count[security] > 0:
-                incursions[security].append({
-                    'constellation_id': constellation_id, 'time': time
-                })
-            incursion_count[security] -= 1
+        data = await cursor.fetchone()
+        while not complete_history(incursion_count) and data:
+            uuid, constellation_id, security, state, time = data
+            if uuid not in known_incursions:
+                known_incursions[uuid] = {
+                    'constellation_id': constellation_id,
+                    'time': time,
+                    'security': security
+                }
+            if state == 'defeated':
+                defeated_incursions.add(uuid)
+            if state == 'established':
+                established_incursion = known_incursions[uuid]
+                established_security = established_incursion['security']
+                if uuid in defeated_incursions:
+                    incursions[established_security].append(
+                        established_incursion
+                    )
+                elif len(incursions[established_security]) >= incursion_max[established_security]:
+                    incursions[established_security].pop()
+                incursion_count[established_security] -= 1
+            data = await cursor.fetchone()
         return incursions
     
     
