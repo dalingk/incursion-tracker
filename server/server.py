@@ -44,7 +44,7 @@ async def get_incursion_history():
         data = await cursor.fetchone()
         while not complete_history(incursion_count) and data:
             uuid, constellation_id, security, state, time = data
-            if uuid not in known_incursions:
+            if uuid not in known_incursions and all(data):
                 known_incursions[uuid] = {
                     'constellation_id': constellation_id,
                     'time': time,
