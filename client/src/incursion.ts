@@ -300,10 +300,10 @@ class ESIData {
                 .then((data: ESI.TimerHistory) => {
                     Object.values(data).forEach(item => {
                         item.forEach(({ time, history }) => {
-                            const defeatTime = new Date(time);
-                            const timeP12 = new Date(time);
+                            const defeatTime = new Date(time + 'Z');
+                            const timeP12 = new Date(time + 'Z');
                             timeP12.setHours(defeatTime.getHours() + 12);
-                            const timeP36 = new Date(time);
+                            const timeP36 = new Date(time + 'Z');
                             timeP36.setHours(defeatTime.getHours() + 36);
                             history.history['forming'] = timeP12.toISOString();
                             history.history['deployed'] = timeP36.toISOString();
@@ -1093,10 +1093,10 @@ function main() {
 
                 let respawnState = 'Late';
                 const currentTime = new Date();
-                const defeatTime = new Date(time);
-                const timeP12 = new Date(time);
+                const defeatTime = new Date(time + 'Z');
+                const timeP12 = new Date(time + 'Z');
                 timeP12.setHours(defeatTime.getHours() + 12);
-                const timeP36 = new Date(time);
+                const timeP36 = new Date(time + 'Z');
                 timeP36.setHours(defeatTime.getHours() + 36);
                 if (currentTime.getTime() < timeP12.getTime()) {
                     respawnState = 'Forming';
