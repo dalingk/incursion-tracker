@@ -133,6 +133,8 @@ export interface IncursionHistory {
 export interface TimerItem {
     constellation_id: number;
     time: string;
+    security: 'high'|'low'|'null';
+    history: HistoryItem;
 }
 
 export interface TimerHistory {
