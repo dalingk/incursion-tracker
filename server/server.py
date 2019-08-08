@@ -34,6 +34,7 @@ async def get_incursion_history():
     incursion_count = incursion_max.copy()
     incursions = {'high': [], 'low': [], 'null': []}
     known_incursions = {}
+    history = {}
     defeated_incursions = set()
     async with aiosqlite.connect(DB_FILE) as db:
         cursor = await db.execute(
@@ -44,12 +45,22 @@ async def get_incursion_history():
         data = await cursor.fetchone()
         while not complete_history(incursion_count) and data:
             uuid, constellation_id, security, state, time = data
+            if uuid not in history:
+                history[uuid] = {
+                        'state': 'defeated',
+                        'has_boss': False,
+                        'constellation_id': 0,
+                        'history': {}
+                }
+            history[uuid]['history'][state] = time
             if uuid not in known_incursions and all(data):
                 known_incursions[uuid] = {
                     'constellation_id': constellation_id,
                     'time': time,
-                    'security': security
+                    'security': security,
+                    'history': history[uuid]
                 }
+                history[uuid]['constellation_id'] = constellation_id
             if state == 'defeated':
                 defeated_incursions.add(uuid)
             if state == 'established':
