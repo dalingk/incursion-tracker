@@ -1,2 +1,4 @@
 dist
 node_modules
+server/incursion.db
+.vscode
