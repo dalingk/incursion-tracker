@@ -1,14 +1,14 @@
 aiofiles==0.4.0
 aiosqlite==0.8.1
-certifi==2018.11.29
+certifi==2019.6.16
 chardet==3.0.4
 httptools==0.0.11
 idna==2.8
 multidict==4.5.2
 pkg-resources==0.0.0
-requests==2.21.0
+requests==2.22.0
 sanic==18.12.0
 ujson==1.35
-urllib3==1.24.1
+urllib3==1.25.3
 uvloop==0.12.0
 websockets==6.0
