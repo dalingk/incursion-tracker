@@ -3,6 +3,7 @@ import uuid
 import aiosqlite
 from sanic import Sanic
 from sanic.response import json
+from pprint import pprint
 
 DB_FILE = os.environ.get('DB_FILE', 'incursion.db')
 SANIC_PORT = int(os.environ.get('SANIC_PORT', 3000))
@@ -27,6 +28,22 @@ async def get_incursion_data():
 def complete_history(incursion_history):
     """Return True if incursion history is complete."""
     return all(x <= 0 for x in incursion_history.values())
+
+def post_process_incursions(
+        incursions,
+        known_incursions,
+        defeated_incursions,
+        incursion_max
+    ):
+    """Post process a list of incursion UUIDs, their information, and which 
+    are defeated into the format needed for JSON."""
+    out_incursions = {}
+    for key, values in incursions.items():
+        out_incursions[key] = [
+            known_incursions[x] for x in values[:incursion_max[key]]
+            if x in defeated_incursions
+        ]
+    return out_incursions
 
 async def get_incursion_history():
     """Get timer information for incursions."""
@@ -66,15 +83,14 @@ async def get_incursion_history():
             if state == 'established':
                 established_incursion = known_incursions[uuid]
                 established_security = established_incursion['security']
-                if uuid in defeated_incursions:
-                    incursions[established_security].append(
-                        established_incursion
-                    )
-                elif len(incursions[established_security]) >= incursion_max[established_security]:
-                    incursions[established_security].pop()
+                incursions[established_security].append(
+                    uuid
+                )
                 incursion_count[established_security] -= 1
             data = await cursor.fetchone()
-        return incursions
+        return post_process_incursions(
+            incursions, known_incursions, defeated_incursions, incursion_max
+        )
     
     
 
