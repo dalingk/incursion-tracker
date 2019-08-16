@@ -64,20 +64,28 @@ async def get_incursion_history():
             uuid, constellation_id, security, state, time = data
             if uuid not in history:
                 history[uuid] = {
-                        'state': 'defeated',
-                        'has_boss': False,
-                        'constellation_id': 0,
-                        'history': {}
+                    'state': 'defeated',
+                    'has_boss': False,
+                    'constellation_id': 0,
+                    'history': {}
                 }
             history[uuid]['history'][state] = time
-            if uuid not in known_incursions and all(data):
+            if uuid not in known_incursions:
                 known_incursions[uuid] = {
-                    'constellation_id': constellation_id,
-                    'time': time,
-                    'security': security,
                     'history': history[uuid]
                 }
+            if constellation_id:
                 history[uuid]['constellation_id'] = constellation_id
+            known_incursions[uuid].update({
+                key: value for key, value in {
+                    'constellation_id': constellation_id,
+                    'time': time if 'time' not in known_incursions[uuid] 
+                    or time > known_incursions[uuid].get(
+                        'time', False
+                    ) else None,
+                    'security': security
+                }.items() if value
+            })
             if state == 'defeated':
                 defeated_incursions.add(uuid)
             if state == 'established':
@@ -88,6 +96,8 @@ async def get_incursion_history():
                 )
                 incursion_count[established_security] -= 1
             data = await cursor.fetchone()
+        for history in incursions.values():
+            history.sort(key=lambda x: known_incursions[x]['time'], reverse=True)
         return post_process_incursions(
             incursions, known_incursions, defeated_incursions, incursion_max
         )
