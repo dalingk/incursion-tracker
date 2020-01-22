@@ -47,60 +47,39 @@ def post_process_incursions(
 
 async def get_incursion_history():
     """Get timer information for incursions."""
+    history = {'high': [], 'low': [], 'null': []}
     incursion_max = {'high': 1, 'low': 1, 'null': 3}
-    incursion_count = incursion_max.copy()
-    incursions = {'high': [], 'low': [], 'null': []}
-    known_incursions = {}
-    history = {}
-    defeated_incursions = set()
     async with aiosqlite.connect(DB_FILE) as db:
+        cursor = await db.execute(
+            'SELECT uuid, security from current_incursion where current = 1;'
+        )
+        for incursion_id, security in await cursor.fetchall():
+            incursion_max[security] -= 1 if incursion_max[security] > 0 else 0
+
         cursor = await db.execute(
             'select uuid, constellation_id, security, state, time from '
             'state_changes natural left join current_incursion '
-            ' order by time desc;'
+            'where state = "defeated" order by time desc;'
         )
         data = await cursor.fetchone()
-        while not complete_history(incursion_count) and data:
+        while not complete_history(incursion_max) and data:
             uuid, constellation_id, security, state, time = data
-            if uuid not in history:
-                history[uuid] = {
-                    'state': 'defeated',
-                    'has_boss': False,
-                    'constellation_id': 0,
-                    'history': {}
-                }
-            history[uuid]['history'][state] = time
-            if uuid not in known_incursions:
-                known_incursions[uuid] = {
-                    'history': history[uuid]
-                }
-            if constellation_id:
-                history[uuid]['constellation_id'] = constellation_id
-            known_incursions[uuid].update({
-                key: value for key, value in {
+            if state == 'defeated' and incursion_max[security] > 0:
+                history[security].append({
                     'constellation_id': constellation_id,
-                    'time': time if 'time' not in known_incursions[uuid] 
-                    or time > known_incursions[uuid].get(
-                        'time', False
-                    ) else None,
-                    'security': security
-                }.items() if value
-            })
-            if state == 'defeated':
-                defeated_incursions.add(uuid)
-            if state == 'established':
-                established_incursion = known_incursions[uuid]
-                established_security = established_incursion['security']
-                incursions[established_security].append(
-                    uuid
-                )
-                incursion_count[established_security] -= 1
+                    'time': time,
+                    'security': security,
+                    'history': {
+                        'state': state,
+                        'constellation_id': constellation_id,
+                        'history': {
+                            'defeated': time
+                        }
+                    }
+                })
+                incursion_max[security] -= 1
             data = await cursor.fetchone()
-        for history in incursions.values():
-            history.sort(key=lambda x: known_incursions[x]['time'], reverse=True)
-        return post_process_incursions(
-            incursions, known_incursions, defeated_incursions, incursion_max
-        )
+        return history
     
     
 
