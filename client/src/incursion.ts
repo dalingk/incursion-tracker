@@ -1135,7 +1135,7 @@ function main() {
         lastUpdated.appendChild(
             new Text(
                 `Last Updated: ${updatedDate.getUTCFullYear()
-                }-${('' + updatedDate.getUTCMonth()).padStart(2, '0')
+                }-${('' + (updatedDate.getUTCMonth() + 1)).padStart(2, '0')
                 }-${('' + updatedDate.getUTCDate()).padStart(2, '0')
                 } ${('' + updatedDate.getUTCHours()).padStart(
                     2,
