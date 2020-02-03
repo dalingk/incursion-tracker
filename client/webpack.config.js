@@ -4,6 +4,8 @@ const development = process.env.NODE_ENV != 'production';
 
 const HTMLWebpackPlugin = require('html-webpack-plugin');
 
+const CopyPlugin = require('copy-webpack-plugin');
+
 module.exports = {
     entry: './src/incursion.ts',
     mode: development ? 'development' : 'production',
@@ -12,7 +14,13 @@ module.exports = {
             { test: /\.ts$/, use: 'babel-loader', exclude: /node_modules/ }
         ]
     },
-    plugins: [new HTMLWebpackPlugin({template: './src/incursions.html'})],
+    plugins: [
+        new HTMLWebpackPlugin({ template: './src/incursions.html' }),
+        new CopyPlugin([{
+            from: path.resolve(__dirname, 'src', 'images'),
+            to: path.resolve(__dirname, 'dist')
+        }])
+    ],
     resolve: {
         extensions: ['.ts', '.js']
     },
@@ -22,6 +30,7 @@ module.exports = {
     },
     devServer: {
         port: 3000,
-        host: '0.0.0.0'
+        host: '0.0.0.0',
+        contentBase: 'dist'
     }
 };
