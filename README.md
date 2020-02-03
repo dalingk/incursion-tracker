@@ -14,3 +14,7 @@ Features:
 
 Upcoming features:
   * Better support for your location and avoid
+
+Credits:
+
+The Sansha's Nation icon obviously belongs to [CCP games](https://www.ccpgames.com/).
