@@ -506,9 +506,7 @@ class IncursionDisplay {
                 },
                 new Map()
             );
-            let iterator = sortedMap.entries();
-            let value = iterator.next().value;
-            while (value) {
+            for (let value of sortedMap) {
                 let [date, events] = value;
                 const dateDisplay = document.createDocumentFragment();
                 events.map(([state, eventDate], idx) => {
@@ -542,7 +540,7 @@ class IncursionDisplay {
                     dateDisplay.appendChild(row);
                 });
                 historyBody.appendChild(dateDisplay);
-                value = iterator.next().value;
+                // value = iterator.next().value;
             }
             display.appendChild(history);
         });
@@ -944,20 +942,6 @@ function main() {
             let hqSovereignty = document.createElement('div');
             hqSovereignty.appendChild(new Text('Sovereignty: '));
             display.appendChild(hqSovereignty);
-
-            display.appendChild(document.createElement('br'));
-
-            let staging = document.createElement('div');
-            staging.appendChild(document.createTextNode('Staging system: '));
-            staging.appendChild(
-                renderer.system(incursion.staging_solar_system_id)
-            );
-            staging.appendChild(new Text(' ('));
-            staging.appendChild(
-                renderer.systemSecurity(incursion.staging_solar_system_id)
-            );
-            staging.appendChild(new Text(')'));
-            display.appendChild(staging);
 
             let sortSystems: Function[] = [];
             let affectedSystems = document.createElement('table');
