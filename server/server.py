@@ -10,7 +10,7 @@ SANIC_PORT = int(os.environ.get('SANIC_PORT', 3000))
 SANIC_HOST = os.environ.get('SANIC_HOST', '0.0.0.0')
 SANIC_SOCKET = os.environ.get('SANIC_SOCKET', None)
 SANIC_LOG = os.environ.get('SANIC_LOG', 'True') == 'True'
-app = Sanic()
+app = Sanic(name='incursion')
 
 async def get_incursion_data():
     """Parse incursions into a cohesive dictionary object."""
