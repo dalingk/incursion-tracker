@@ -875,6 +875,7 @@ class RoutePlanner {
 }
 
 function main() {
+    console.log(' in main');
     let location = <HTMLInputElement>document.getElementById('location');
     let avoid = <HTMLInputElement>document.getElementById('avoid');
     let prefer = <HTMLSelectElement>document.getElementById('prefer');
@@ -1201,12 +1202,12 @@ function main() {
 (function () {
     let mainRan = false;
     if (document.readyState != 'loading') {
-        mainRan && main();
+        mainRan || main();
         mainRan = true;
     } else {
         document.addEventListener('readystatechange', () => {
             if (document.readyState != 'loading') {
-                mainRan && main();
+                mainRan || main();
                 mainRan = true;
             }
         });
