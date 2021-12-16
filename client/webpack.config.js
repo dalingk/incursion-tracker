@@ -16,10 +16,12 @@ module.exports = {
     },
     plugins: [
         new HTMLWebpackPlugin({ template: './src/incursions.html' }),
-        new CopyPlugin([{
-            from: path.resolve(__dirname, 'src', 'images'),
-            to: path.resolve(__dirname, 'dist')
-        }])
+        new CopyPlugin({
+            patterns: [{
+                from: path.resolve(__dirname, 'src', 'images'),
+                to: path.resolve(__dirname, 'dist')
+            }]
+        })
     ],
     resolve: {
         extensions: ['.ts', '.js']
@@ -31,6 +33,6 @@ module.exports = {
     devServer: {
         port: 3000,
         host: '0.0.0.0',
-        contentBase: 'dist'
+        static: 'dist'
     }
 };
