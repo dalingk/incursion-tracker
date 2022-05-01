@@ -4,7 +4,6 @@
   "description": "Client side script for monitoring incursions",
   "main": "src/incursion.ts",
   "license": "MIT",
-  "dependencies": {},
   "devDependencies": {
     "@babel/cli": "^7.2.3",
     "@babel/core": "^7.2.2",
